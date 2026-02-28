@@ -95,8 +95,27 @@ export default function SpainMap({ circumscriptions, selectedCirc, onSelect }: P
 
   return (
     <div className="space-y-6">
-      {/* Map + Stats side by side */}
+      {/* Stat cards — on mobile: above map in a row; on desktop: stacked right of map */}
       <div className="grid grid-cols-1 md:grid-cols-[1fr_220px] gap-4">
+        {/* Stat cards — mobile only (above map) */}
+        <div className="flex gap-3 md:hidden">
+          <div className="rounded-xl bg-gray-50 p-4 flex-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-text block mb-1">Total escaños</span>
+            <span className="text-2xl font-serif text-navy block">{totalSeatsConst}</span>
+            <span className="text-[10px] text-muted-text">Congreso de los Diputados</span>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4 flex-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-text block mb-1">Población total</span>
+            <span className="text-2xl font-serif text-navy block">{(totalPopulation / 1e6).toFixed(1)}M</span>
+            <span className="text-[10px] text-muted-text">INE 2023</span>
+          </div>
+          <div className="rounded-xl bg-gray-50 p-4 flex-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-text block mb-1">Hab / escaño</span>
+            <span className="text-2xl font-serif text-navy block">{Math.round(totalPopulation / totalSeatsConst / 1000)}K</span>
+            <span className="text-[10px] text-muted-text">Media nacional</span>
+          </div>
+        </div>
+
         {/* Map card */}
         <div className="rounded-2xl border border-gray-100 bg-white p-4 md:p-6">
           <svg viewBox="0 0 85 100" className="w-full h-[300px] md:h-[400px]">
@@ -145,12 +164,12 @@ export default function SpainMap({ circumscriptions, selectedCirc, onSelect }: P
           </div>
         </div>
 
-        {/* Stat cards — stacked right */}
-        <div className="flex md:flex-col gap-3">
-          <div className="rounded-xl bg-navy text-white p-4 flex-1">
-            <span className="text-[10px] uppercase tracking-wider text-white/50 block mb-1">Total escaños</span>
-            <span className="text-3xl font-serif block">{totalSeatsConst}</span>
-            <span className="text-[10px] text-white/40">Congreso de los Diputados</span>
+        {/* Stat cards — desktop only (stacked right of map) */}
+        <div className="hidden md:flex md:flex-col gap-3">
+          <div className="rounded-xl bg-gray-50 p-4 flex-1">
+            <span className="text-[10px] uppercase tracking-wider text-muted-text block mb-1">Total escaños</span>
+            <span className="text-3xl font-serif text-navy block">{totalSeatsConst}</span>
+            <span className="text-[10px] text-muted-text">Congreso de los Diputados</span>
           </div>
           <div className="rounded-xl bg-gray-50 p-4 flex-1">
             <span className="text-[10px] uppercase tracking-wider text-muted-text block mb-1">Población total</span>
