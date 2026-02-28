@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  Cell
 } from "recharts";
 import { PartyInfo } from "@/data/elections2023";
 
@@ -21,9 +20,8 @@ interface Props {
 }
 
 export default function ComparisonChart({ dHondt, gime, parties }: Props) {
-  // Preparar datos para el gráfico
   const allParties = new Set([...Object.keys(dHondt), ...Object.keys(gime)]);
-  
+
   const data = Array.from(allParties)
     .map(party => ({
       name: party,
@@ -34,39 +32,54 @@ export default function ComparisonChart({ dHondt, gime, parties }: Props) {
     .filter(d => d["D'Hondt"] > 0 || d["GIME"] > 0)
     .sort((a, b) => b["D'Hondt"] - a["D'Hondt"]);
 
+  const chartHeight = Math.max(300, data.length * 48);
+
   return (
-    <div className="w-full h-[400px]">
+    <div style={{ width: "100%", height: chartHeight }}>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={data}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+          layout="vertical"
+          margin={{ top: 10, right: 40, left: 60, bottom: 10 }}
         >
-          <CartesianGrid strokeDasharray="3 3" />
-          <XAxis 
-            dataKey="name" 
-            tick={{ fill: 'currentColor' }}
+          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e5e7eb" />
+          <XAxis
+            type="number"
+            tick={{ fill: "#6b7280", fontSize: 12 }}
+            axisLine={{ stroke: "#e5e7eb" }}
           />
-          <YAxis 
-            tick={{ fill: 'currentColor' }}
-            label={{ value: 'Escaños', angle: -90, position: 'insideLeft' }}
+          <YAxis
+            type="category"
+            dataKey="name"
+            tick={{ fill: "#374151", fontSize: 13, fontWeight: 500 }}
+            axisLine={false}
+            tickLine={false}
+            width={50}
           />
-          <Tooltip 
-            contentStyle={{ 
-              backgroundColor: 'var(--fallback-b1,oklch(var(--b1)/1))',
-              borderColor: 'var(--fallback-b3,oklch(var(--b3)/1))',
-              borderRadius: '0.5rem'
+          <Tooltip
+            contentStyle={{
+              backgroundColor: "#fff",
+              border: "1px solid #e5e7eb",
+              borderRadius: "0.75rem",
+              fontSize: 13,
             }}
           />
-          <Legend />
-          <Bar 
-            dataKey="D'Hondt" 
-            fill="#6366f1" 
-            name="D'Hondt Tradicional"
+          <Legend
+            wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
           />
-          <Bar 
-            dataKey="GIME" 
-            fill="#10b981" 
+          <Bar
+            dataKey="D'Hondt"
+            fill="#6366f1"
+            name="D'Hondt Tradicional"
+            radius={[0, 4, 4, 0]}
+            barSize={14}
+          />
+          <Bar
+            dataKey="GIME"
+            fill="#10b981"
             name="Método GIME"
+            radius={[0, 4, 4, 0]}
+            barSize={14}
           />
         </BarChart>
       </ResponsiveContainer>

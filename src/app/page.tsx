@@ -4,15 +4,31 @@ import React, { useState } from "react";
 import StepExplanation from "@/components/StepExplanation";
 import Simulator from "@/components/Simulator";
 import SpainMap from "@/components/SpainMap";
-import Pactometro from "@/components/Pactometro";
-import { circunscripciones, realResults2023, calculateNationalTotals, parties } from "@/data/elections2023";
+import { circunscripciones, realResults2023, parties } from "@/data/elections2023";
 import { dHondtByCircumscription, runGIME } from "@/lib/electoral-methods";
 
+const TAB1_PILLS = [
+  { id: "problema", label: "El problema" },
+  { id: "pasos", label: "Tres pasos" },
+  { id: "circunscripciones", label: "Circunscripciones" },
+  { id: "sobre", label: "Sobre el método" },
+  { id: "referencias", label: "Referencias" },
+];
+
+const TAB2_PILLS = [
+  { id: "parametros", label: "Parámetros" },
+  { id: "gallagher", label: "Gallagher" },
+  { id: "gobernabilidad", label: "Gobernabilidad" },
+  { id: "resultados", label: "Resultados" },
+  { id: "pactometro", label: "Pactómetro" },
+  { id: "etapas", label: "Etapas GIME" },
+];
+
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"intro" | "simulator" | "about">("intro");
+  const [activeTab, setActiveTab] = useState<"intro" | "simulator">("intro");
+  const [activePill, setActivePill] = useState<string>("problema");
   const [selectedCirc, setSelectedCirc] = useState<string | null>(null);
-  
-  // Calcular resultados para el pactómetro
+
   const totalSeats = circunscripciones.reduce((sum, c) => sum + c.seats, 0);
   const dHondtResult = dHondtByCircumscription(
     circunscripciones.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
@@ -26,245 +42,259 @@ export default function Home() {
   );
   const gimeNational = gimeResults[gimeResults.length - 1].nationalAllocation;
 
+  const scrollToSection = (id: string) => {
+    setActivePill(id);
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const pills = activeTab === "intro" ? TAB1_PILLS : TAB2_PILLS;
+
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-white">
       {/* Hero */}
-      <div className="hero bg-gradient-to-br from-primary to-secondary text-primary-content py-16">
-        <div className="hero-content text-center">
-          <div className="max-w-3xl">
-            <h1 className="text-5xl font-bold mb-4">
-              Método GIME
-            </h1>
-            <p className="text-xl mb-2">
-              Sistema Electoral Biproporcional
-            </p>
-            <p className="text-lg opacity-80 mb-6">
-              Una propuesta del Grupo de Investigación en Métodos Electorales
-              <br />
-              <span className="text-sm">(Victoriano Ramírez González, Universidad de Granada)</span>
-            </p>
-            <div className="flex justify-center gap-4 flex-wrap">
-              <div className="badge badge-lg badge-outline">🗳️ Proporcionalidad Nacional</div>
-              <div className="badge badge-lg badge-outline">⚖️ Biproporcionalidad</div>
-              <div className="badge badge-lg badge-outline">🛡️ No Regresión</div>
-              <div className="badge badge-lg badge-outline">🏛️ Gobernabilidad</div>
+      <div className="bg-navy text-white py-12 md:py-20">
+        <div className="max-w-5xl mx-auto px-5 md:px-20">
+          {/* Top bar */}
+          <div className="flex items-center justify-between mb-12 md:mb-16">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-accent-red" />
+              <span className="text-[10px] md:text-xs tracking-widest uppercase text-white/50">
+                Grupo de Investigación en Métodos Electorales
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-white/40">
+              <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-[8px] font-bold">UGR</div>
+              <span className="text-[10px] hidden md:inline">Universidad<br/>de Granada</span>
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 className="font-serif text-5xl md:text-7xl tracking-tight mb-4">
+            Método GIME
+          </h1>
+          <p className="text-sm md:text-base text-white/50 mb-10 md:mb-14 max-w-md">
+            Un sistema electoral biproporcional que garantiza que cada voto cuente igual, sin importar la provincia.
+          </p>
+
+          {/* Stats — bottom left */}
+          <div className="flex items-end gap-6 text-white/40">
+            <div>
+              <span className="block text-3xl md:text-4xl font-serif text-white/80">{totalSeats}</span>
+              <span className="text-[10px] uppercase tracking-wider">escaños</span>
+            </div>
+            <div>
+              <span className="block text-3xl md:text-4xl font-serif text-white/80">52</span>
+              <span className="text-[10px] uppercase tracking-wider">circunscripciones</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <div className="sticky top-0 z-50 bg-base-100 shadow-sm">
-        <div className="container mx-auto px-4">
-          <div className="tabs tabs-boxed justify-center py-2 bg-transparent">
-            <button 
-              className={`tab tab-lg ${activeTab === 'intro' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('intro')}
+      {/* Sticky nav */}
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-100">
+        <div className="max-w-5xl mx-auto px-5 md:px-20">
+          <div className="flex gap-0 border-b border-gray-100">
+            <button
+              className={`px-5 py-3 text-sm font-medium transition-colors ${
+                activeTab === "intro"
+                  ? "text-navy border-b-2 border-navy"
+                  : "text-muted-text hover:text-body-text"
+              }`}
+              onClick={() => { setActiveTab("intro"); setActivePill("problema"); }}
             >
-              📚 ¿Cómo funciona?
+              Cómo funciona
             </button>
-            <button 
-              className={`tab tab-lg ${activeTab === 'simulator' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('simulator')}
+            <button
+              className={`px-5 py-3 text-sm font-medium transition-colors ${
+                activeTab === "simulator"
+                  ? "text-navy border-b-2 border-navy"
+                  : "text-muted-text hover:text-body-text"
+              }`}
+              onClick={() => { setActiveTab("simulator"); setActivePill("parametros"); }}
             >
-              🧮 Simulador + Pactómetro
+              Simulador
             </button>
-            <button 
-              className={`tab tab-lg ${activeTab === 'about' ? 'tab-active' : ''}`}
-              onClick={() => setActiveTab('about')}
-            >
-              ℹ️ Sobre el método
-            </button>
+          </div>
+          <div className="flex gap-2 py-2 overflow-x-auto no-scrollbar">
+            {pills.map(pill => (
+              <button
+                key={pill.id}
+                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                  activePill === pill.id
+                    ? "bg-navy text-white"
+                    : "bg-gray-100 text-muted-text hover:bg-gray-200"
+                }`}
+                onClick={() => scrollToSection(pill.id)}
+              >
+                {pill.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-5xl mx-auto px-5 md:px-20 py-10 md:py-16">
         {activeTab === "intro" && (
-          <div className="space-y-8">
-            <StepExplanation />
-            
-            {/* Problema del sistema actual */}
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-2xl">🚨 El Problema del Sistema Actual</h2>
-                <p className="text-lg">
-                  El sistema electoral español actual (D'Hondt por circunscripciones) produce una 
-                  <strong> desproporcionalidad significativa</strong> entre votos y escaños.
-                </p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                  <div className="bg-error/10 rounded-box p-4">
-                    <h3 className="font-bold text-error mb-2">❌ Problemas actuales</h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Partidos grandes sobrerrepresentados</li>
-                      <li>Partidos pequeños infrarrepresentados</li>
-                      <li>Voto "perdido" en circunscripciones pequeñas</li>
-                      <li>Desigualdad del valor del voto según provincia</li>
-                      <li>Prima a partidos con voto concentrado geográficamente</li>
-                    </ul>
+          <div className="space-y-20">
+            {/* ===== EL PROBLEMA ===== */}
+            <section id="problema">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">El problema</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-6 leading-tight">
+                Tu voto no vale lo mismo en todas las provincias
+              </h2>
+              <p className="text-base text-muted-text mb-10 max-w-lg">
+                El sistema D&apos;Hondt por circunscripciones produce una desproporcionalidad significativa. Los partidos grandes ganan escaños de más y los pequeños pierden representación.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Sistema actual card — white with X */}
+                <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="w-6 h-6 rounded-md bg-gray-100 text-body-text text-xs flex items-center justify-center font-bold">✕</span>
+                    <h3 className="font-semibold text-navy text-sm">Sistema actual</h3>
                   </div>
-                  
-                  <div className="bg-success/10 rounded-box p-4">
-                    <h3 className="font-bold text-success mb-2">✅ Soluciones GIME</h3>
-                    <ul className="list-disc list-inside space-y-1 text-sm">
-                      <li>Proporcionalidad perfecta a nivel nacional</li>
-                      <li>Todos los votos cuentan igual</li>
-                      <li>Mantiene circunscripciones y cercanía al territorio</li>
-                      <li>Compatible con ajustes de gobernabilidad</li>
-                      <li>Transparente y matemáticamente riguroso</li>
-                    </ul>
+                  <ul className="space-y-2.5 text-sm text-muted-text">
+                    <li>Partidos grandes sobrerrepresentados</li>
+                    <li>Voto perdido en circunscripciones pequeñas</li>
+                    <li>Desigualdad del valor del voto según provincia</li>
+                    <li>Prima a partidos con voto concentrado</li>
+                  </ul>
+                </div>
+
+                {/* Método GIME card — white with green check */}
+                <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                  <div className="flex items-center gap-2 mb-5">
+                    <span className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 text-xs flex items-center justify-center font-bold">✓</span>
+                    <h3 className="font-semibold text-navy text-sm">Método GIME</h3>
+                  </div>
+                  <ul className="space-y-2.5 text-sm text-muted-text">
+                    <li>Proporcionalidad perfecta a nivel nacional</li>
+                    <li>Todos los votos cuentan igual</li>
+                    <li>Mantiene circunscripciones territoriales</li>
+                    <li>Transparente y matemáticamente riguroso</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* ===== TRES PASOS ===== */}
+            <section id="pasos">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Cómo funciona</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-10 leading-tight">
+                Tres pasos hacia la proporcionalidad
+              </h2>
+              <StepExplanation />
+            </section>
+
+            {/* ===== CIRCUNSCRIPCIONES ===== */}
+            <section id="circunscripciones">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Circunscripciones</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-4 leading-tight">
+                52 provincias, un Congreso
+              </h2>
+              <p className="text-muted-text mb-8 max-w-lg text-sm">
+                España tiene 52 circunscripciones (50 provincias + Ceuta + Melilla). El tamaño del círculo representa el número de escaños asignados. El color indica si la provincia está sobre o infrarrepresentada respecto a su población.
+              </p>
+
+              <SpainMap
+                circumscriptions={circunscripciones}
+                selectedCirc={selectedCirc}
+                onSelect={setSelectedCirc}
+              />
+            </section>
+
+            {/* ===== SOBRE EL MÉTODO ===== */}
+            <section id="sobre">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Sobre el método</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-8 leading-tight">
+                El Método GIME
+              </h2>
+
+              <div className="space-y-8 text-body-text leading-relaxed">
+                <p className="max-w-2xl">
+                  El <strong>Método GIME</strong> (Grupo de Investigación en Métodos Electorales) es una propuesta desarrollada por <strong>Victoriano Ramírez González</strong> de la Universidad de Granada.
+                </p>
+
+                <div>
+                  <h3 className="font-serif text-xl text-navy mb-4">Principios fundamentales</h3>
+                  <ol className="space-y-3 max-w-2xl">
+                    <li className="flex items-start gap-3">
+                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-blue text-white text-[10px] flex items-center justify-center font-bold">1</span>
+                      <div className="text-sm"><strong>Proporcionalidad global</strong> — Los escaños totales de cada partido deben ser proporcionales a sus votos nacionales.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-amber text-white text-[10px] flex items-center justify-center font-bold">2</span>
+                      <div className="text-sm"><strong>Biproporcionalidad</strong> — La distribución debe satisfacer simultáneamente los totales por partido Y los totales por circunscripción.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-pink text-white text-[10px] flex items-center justify-center font-bold">3</span>
+                      <div className="text-sm"><strong>No regresión</strong> — Ningún partido puede perder escaños en etapas posteriores del algoritmo.</div>
+                    </li>
+                    <li className="flex items-start gap-3">
+                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-navy text-white text-[10px] flex items-center justify-center font-bold">4</span>
+                      <div className="text-sm"><strong>Gobernabilidad (opcional)</strong> — Se puede aplicar una bonificación al partido ganador si se considera necesario.</div>
+                    </li>
+                  </ol>
+                </div>
+
+                {/* 2-column: biproporcionalidad + implementación */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
+                  <div>
+                    <h3 className="font-serif text-lg text-navy mb-3">¿Por qué biproporcionalidad?</h3>
+                    <p className="text-sm">
+                      El método biproporcional fue desarrollado matemáticamente por <strong>Friedrich Pukelsheim</strong> y se usa en cantones suizos como Zúrich desde 2006.
+                    </p>
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-lg text-navy mb-3">Implementación técnica</h3>
+                    <p className="text-sm">
+                      El algoritmo usa un método iterativo de ajuste de multiplicadores de filas y columnas. En Método Exacto es un modelo de ecuaciones con una familia de soluciones que verifica todas las condiciones.
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            {/* Mapa de circunscripciones */}
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-2xl">🗺️ Circunscripciones Electorales</h2>
-                <p className="text-base-content/70 mb-4">
-                  España tiene 52 circunscripciones (50 provincias + Ceuta + Melilla). 
-                  El tamaño del círculo representa el número de escaños.
-                </p>
-                <SpainMap 
-                  circumscriptions={circunscripciones}
-                  selectedCirc={selectedCirc}
-                  onSelect={setSelectedCirc}
-                />
-                
-                {selectedCirc && (
-                  <div className="alert alert-info mt-4">
-                    <span>
-                      <strong>{selectedCirc}:</strong>{' '}
-                      {circunscripciones.find(c => c.name === selectedCirc)?.seats} escaños
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* CTA al simulador */}
-            <div className="text-center py-8">
-              <button 
-                className="btn btn-primary btn-lg"
-                onClick={() => setActiveTab('simulator')}
-              >
-                🧮 Prueba el Simulador
-              </button>
-            </div>
+            {/* ===== REFERENCIAS ===== */}
+            <section id="referencias">
+              <h3 className="font-serif text-xl text-navy mb-4">Referencias</h3>
+              <ul className="space-y-2 text-sm text-body-text">
+                <li className="flex items-start gap-2">
+                  <span className="text-muted-text">•</span>
+                  Ramírez González, V. et al. — Publicaciones sobre métodos electorales
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-muted-text">•</span>
+                  Pukelsheim, F. — &ldquo;Proportional Representation: Apportionment Methods and Their Applications&rdquo;
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-muted-text">•</span>
+                  Sistema biproporcional de Zúrich (implementación real desde 2006)
+                </li>
+              </ul>
+            </section>
           </div>
         )}
 
         {activeTab === "simulator" && <Simulator />}
-
-        {activeTab === "about" && (
-          <div className="max-w-3xl mx-auto space-y-8">
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-2xl">📖 Sobre el Método GIME</h2>
-                
-                <div className="prose max-w-none">
-                  <p>
-                    El <strong>Método GIME</strong> (Grupo de Investigación en Métodos Electorales) 
-                    es una propuesta desarrollada por <strong>Victoriano Ramírez González</strong> 
-                    de la Universidad de Granada.
-                  </p>
-                  
-                  <h3>Principios fundamentales</h3>
-                  <ol>
-                    <li>
-                      <strong>Proporcionalidad global:</strong> Los escaños totales de cada partido 
-                      deben ser proporcionales a sus votos nacionales.
-                    </li>
-                    <li>
-                      <strong>Biproporcionalidad:</strong> La distribución debe satisfacer 
-                      simultáneamente los totales por partido Y los totales por circunscripción.
-                    </li>
-                    <li>
-                      <strong>No regresión:</strong> Ningún partido puede perder escaños en 
-                      etapas posteriores del algoritmo.
-                    </li>
-                    <li>
-                      <strong>Gobernabilidad (opcional):</strong> Se puede aplicar una bonificación 
-                      al partido ganador si se considera necesario para la estabilidad.
-                    </li>
-                  </ol>
-
-                  <h3>¿Por qué biproporcionalidad?</h3>
-                  <p>
-                    El método biproporcional fue desarrollado matemáticamente por 
-                    <strong> Friedrich Pukelsheim</strong> y se usa en cantones suizos como Zúrich.
-                    Permite mantener circunscripciones territoriales mientras se garantiza 
-                    proporcionalidad nacional.
-                  </p>
-
-                  <h3>Implementación técnica</h3>
-                  <p>
-                    El algoritmo usa un método iterativo de ajuste de multiplicadores 
-                    (similar al algoritmo de Sinkhorn) para encontrar una matriz de escaños 
-                    que satisfaga ambas restricciones marginales.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-2xl">📊 Resultados Reales 2023</h2>
-                <p className="text-base-content/70 mb-4">
-                  Resultados oficiales de las elecciones generales del 23 de julio de 2023:
-                </p>
-                
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(realResults2023)
-                    .sort((a, b) => b[1] - a[1])
-                    .map(([party, seats]) => (
-                      <div 
-                        key={party}
-                        className="stat bg-base-200 rounded-box px-4 py-2"
-                      >
-                        <div className="stat-title text-xs">{party}</div>
-                        <div className="stat-value text-2xl">{seats}</div>
-                      </div>
-                    ))
-                  }
-                </div>
-              </div>
-            </div>
-
-            <div className="card bg-base-100 shadow-xl">
-              <div className="card-body">
-                <h2 className="card-title text-2xl">🔗 Referencias</h2>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>
-                    Ramírez González, V. et al. - Publicaciones sobre métodos electorales
-                  </li>
-                  <li>
-                    Pukelsheim, F. - "Proportional Representation: Apportionment Methods and Their Applications"
-                  </li>
-                  <li>
-                    Sistema biproporcional de Zúrich (implementación real desde 2006)
-                  </li>
-                </ul>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Footer */}
-      <footer className="footer footer-center p-10 bg-base-200 text-base-content mt-8">
-        <div>
-          <p className="font-bold text-lg">Método GIME</p>
-          <p>Sistema Electoral Biproporcional</p>
-          <p className="text-sm text-base-content/60">
-            Simulador educativo - Los datos son aproximados y con fines ilustrativos
+      <footer className="bg-navy text-white/60 py-12 md:py-16">
+        <div className="max-w-5xl mx-auto px-5 md:px-20">
+          <p className="text-[10px] text-white/30 mb-6">
+            Simulador educativo basado en las ecuaciones de Victoriano Ramírez González, Universidad de Granada.
           </p>
-        </div>
-        <div>
-          <p>Desarrollado con Next.js, Tailwind CSS y DaisyUI</p>
+          <div className="flex items-center justify-between">
+            <h2 className="font-serif text-xl text-white">Método GIME</h2>
+            <div className="flex gap-6 text-xs text-white/30">
+              <span>GitHub</span>
+              <span>Publicaciones</span>
+              <span>Universidad de Granada</span>
+            </div>
+          </div>
         </div>
       </footer>
     </main>

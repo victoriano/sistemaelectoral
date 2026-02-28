@@ -304,8 +304,8 @@ export function gallagherIndex(
   const totalSeats = Object.values(seats).reduce((a, b) => a + b, 0);
   
   let sumSquares = 0;
-  const allParties = new Set([...Object.keys(votes), ...Object.keys(seats)]);
-  
+  const allParties = Array.from(new Set([...Object.keys(votes), ...Object.keys(seats)]));
+
   for (const party of allParties) {
     const voteShare = ((votes[party] || 0) / totalVotes) * 100;
     const seatShare = ((seats[party] || 0) / totalSeats) * 100;
@@ -322,9 +322,9 @@ export function compareAllocations(
   allocation1: { [party: string]: number },
   allocation2: { [party: string]: number }
 ): { party: string; diff: number; method1: number; method2: number }[] {
-  const allParties = new Set([...Object.keys(allocation1), ...Object.keys(allocation2)]);
+  const allParties = Array.from(new Set([...Object.keys(allocation1), ...Object.keys(allocation2)]));
   const comparison = [];
-  
+
   for (const party of allParties) {
     const seats1 = allocation1[party] || 0;
     const seats2 = allocation2[party] || 0;

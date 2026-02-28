@@ -1,8 +1,19 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Instrument_Serif, DM_Sans } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+const instrumentSerif = Instrument_Serif({
+  weight: "400",
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+});
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "Método GIME - Sistema Electoral Biproporcional",
@@ -16,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" data-theme="corporate">
-      <body className={inter.className}>{children}</body>
+      <body className={`${instrumentSerif.variable} ${dmSans.variable} font-sans`}>{children}</body>
     </html>
   );
 }
