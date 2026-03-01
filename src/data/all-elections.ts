@@ -6,6 +6,7 @@ import { circunscripciones as circunscripciones2023 } from "./elections2023";
 import { circunscripciones2019N } from "./elections2019N";
 import { circunscripciones2019A } from "./elections2019A";
 import { circunscripciones2016 } from "./elections2016";
+import { circunscripciones2027 } from "./elections2027";
 
 export interface ElectionMetadata {
   year: string;
@@ -15,6 +16,12 @@ export interface ElectionMetadata {
 }
 
 export const electionMetadata: { [key: string]: ElectionMetadata } = {
+  "2027*": {
+    year: "2027*",
+    name: "Proyección 2027 *",
+    date: "Encuestas Feb 2026",
+    hasRealData: false,
+  },
   "2023": {
     year: "2023",
     name: "Elecciones Generales 23-J",
@@ -42,6 +49,7 @@ export const electionMetadata: { [key: string]: ElectionMetadata } = {
 };
 
 export const electionData: { [key: string]: CircunscripcionData[] } = {
+  "2027*": circunscripciones2027,
   "2023": circunscripciones2023,
   "2019-N": circunscripciones2019N,
   "2019-A": circunscripciones2019A,

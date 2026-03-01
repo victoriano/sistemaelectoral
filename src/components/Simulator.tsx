@@ -239,6 +239,18 @@ export default function Simulator() {
           </div>
         </div>
 
+        {/* Methodology note for projections */}
+        {selectedYear === "2027*" && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+            <p className="font-semibold mb-1">* Proyección basada en encuestas</p>
+            <p className="text-xs text-amber-700">
+              Promedio de 5 encuestas de febrero 2026 (Ateneo del Dato, Target Point, NC Report, Sociométrica, 40dB).
+              Los votos se distribuyen por provincia usando los patrones geográficos de 2023. Los partidos regionales
+              mantienen su distribución de 2023. Se asume la misma participación total.
+            </p>
+          </div>
+        )}
+
         {/* Party summary pills */}
         <div className="flex flex-wrap gap-2">
           {activeParties.map(partyKey => {

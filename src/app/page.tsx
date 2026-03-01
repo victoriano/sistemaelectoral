@@ -81,29 +81,28 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <div className="bg-navy text-white py-8 md:py-12">
+      <div className="bg-navy text-white pt-4 pb-8 md:pt-6 md:pb-12">
         <div className="max-w-5xl mx-auto px-5 md:px-20">
           {/* Top bar */}
-          <div className="flex items-center justify-between mb-6 md:mb-8">
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-accent-red" />
-              <span className="text-[10px] md:text-xs tracking-widest uppercase text-white/50">
-                Grupo de Investigación en Métodos Electorales
-              </span>
-            </div>
-            <div className="flex items-center gap-2 text-white/40">
-              <div className="w-7 h-7 rounded-full border border-white/20 flex items-center justify-center text-[8px] font-bold">UGR</div>
-              <span className="text-[10px] hidden md:inline">Universidad<br/>de Granada</span>
-            </div>
+          <div className="flex items-center gap-2 mb-6 md:mb-8">
+            <span className="w-2 h-2 rounded-full bg-accent-red" />
+            <span className="text-[10px] md:text-xs tracking-widest uppercase text-white/50">
+              Grupo de Investigación en Métodos Electorales
+            </span>
           </div>
 
-          {/* Title */}
-          <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-2">
-            Método GIME
-          </h1>
-          <p className="text-sm text-white/50 max-w-md">
-            Un sistema electoral biproporcional que garantiza que cada voto cuente igual, sin importar la provincia.
-          </p>
+          {/* Title + Logo */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-2">
+                Método GIME
+              </h1>
+              <p className="text-sm text-white/50 max-w-md">
+                Un sistema electoral biproporcional que garantiza que cada voto cuente igual, sin importar la provincia.
+              </p>
+            </div>
+            <img src="/ugr-logo-negativo.svg" alt="Universidad de Granada" className="h-32 md:h-48 opacity-90 flex-shrink-0" />
+          </div>
         </div>
       </div>
 
