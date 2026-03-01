@@ -269,9 +269,9 @@ export default function Pactometro({ dHondtSeats, gimeSeats }: PactometroProps) 
                   className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
                     isSelected
                       ? "text-white ring-2 ring-offset-1"
-                      : "bg-gray-100 text-muted-text hover:bg-gray-200"
+                      : "text-white opacity-60 hover:opacity-90"
                   }`}
-                  style={isSelected ? { backgroundColor: parties[party]?.color, borderColor: parties[party]?.color } : {}}
+                  style={{ backgroundColor: parties[party]?.color || "#888", borderColor: parties[party]?.color || "#888" }}
                 >
                   {isSelected && "✓ "}{party} ({seats[party]})
                 </button>
