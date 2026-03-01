@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import StepExplanation from "@/components/StepExplanation";
 import Simulator from "@/components/Simulator";
 import SpainMap from "@/components/SpainMap";
@@ -16,18 +16,45 @@ const TAB1_PILLS = [
 ];
 
 const TAB2_PILLS = [
+  { id: "datos", label: "Datos" },
   { id: "parametros", label: "Parámetros" },
-  { id: "gallagher", label: "Gallagher" },
-  { id: "gobernabilidad", label: "Gobernabilidad" },
   { id: "resultados", label: "Resultados" },
+  { id: "gallagher", label: "Proporcionalidad" },
+  { id: "gobernabilidad", label: "Gobernabilidad" },
   { id: "pactometro", label: "Pactómetro" },
   { id: "etapas", label: "Etapas GIME" },
 ];
+
+const TAB2_IDS = TAB2_PILLS.map(p => p.id);
+const TAB1_IDS = TAB1_PILLS.map(p => p.id);
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<"intro" | "simulator">("intro");
   const [activePill, setActivePill] = useState<string>("problema");
   const [selectedCirc, setSelectedCirc] = useState<string | null>(null);
+
+  // Read hash on mount to activate correct tab/section
+  useEffect(() => {
+    const hash = window.location.hash.replace("#", "");
+    if (!hash) return;
+    if (hash === "simulador" || TAB2_IDS.includes(hash)) {
+      setActiveTab("simulator");
+      setActivePill(hash === "simulador" ? "datos" : hash);
+      if (hash !== "simulador") {
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    } else if (TAB1_IDS.includes(hash)) {
+      setActiveTab("intro");
+      setActivePill(hash);
+      setTimeout(() => {
+        const el = document.getElementById(hash);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+    }
+  }, []);
 
   const totalSeats = circunscripciones.reduce((sum, c) => sum + c.seats, 0);
   const dHondtResult = dHondtByCircumscription(
@@ -44,6 +71,7 @@ export default function Home() {
 
   const scrollToSection = (id: string) => {
     setActivePill(id);
+    window.history.replaceState(null, "", `#${id}`);
     const el = document.getElementById(id);
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -53,10 +81,10 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-white">
       {/* Hero */}
-      <div className="bg-navy text-white py-12 md:py-20">
+      <div className="bg-navy text-white py-8 md:py-12">
         <div className="max-w-5xl mx-auto px-5 md:px-20">
           {/* Top bar */}
-          <div className="flex items-center justify-between mb-12 md:mb-16">
+          <div className="flex items-center justify-between mb-6 md:mb-8">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-accent-red" />
               <span className="text-[10px] md:text-xs tracking-widest uppercase text-white/50">
@@ -70,57 +98,47 @@ export default function Home() {
           </div>
 
           {/* Title */}
-          <h1 className="font-serif text-5xl md:text-7xl tracking-tight mb-4">
+          <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-2">
             Método GIME
           </h1>
-          <p className="text-sm md:text-base text-white/50 mb-10 md:mb-14 max-w-md">
+          <p className="text-sm text-white/50 max-w-md">
             Un sistema electoral biproporcional que garantiza que cada voto cuente igual, sin importar la provincia.
           </p>
-
-          {/* Stats — bottom left */}
-          <div className="flex items-end gap-6 text-white/40">
-            <div>
-              <span className="block text-3xl md:text-4xl font-serif text-white/80">{totalSeats}</span>
-              <span className="text-[10px] uppercase tracking-wider">escaños</span>
-            </div>
-            <div>
-              <span className="block text-3xl md:text-4xl font-serif text-white/80">52</span>
-              <span className="text-[10px] uppercase tracking-wider">circunscripciones</span>
-            </div>
-          </div>
         </div>
       </div>
 
       {/* Sticky nav */}
-      <div className="sticky top-0 z-50 bg-white border-b border-gray-100">
+      <div className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-5xl mx-auto px-5 md:px-20">
-          <div className="flex gap-0 border-b border-gray-100">
+          <div className="flex justify-center gap-0 border-b border-gray-100">
             <button
-              className={`px-5 py-3 text-sm font-medium transition-colors ${
+              className={`px-6 py-4 text-sm font-medium transition-colors flex items-center gap-2 ${
                 activeTab === "intro"
                   ? "text-navy border-b-2 border-navy"
                   : "text-muted-text hover:text-body-text"
               }`}
-              onClick={() => { setActiveTab("intro"); setActivePill("problema"); }}
+              onClick={() => { setActiveTab("intro"); setActivePill("problema"); window.history.replaceState(null, "", "#problema"); }}
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
               Cómo funciona
             </button>
             <button
-              className={`px-5 py-3 text-sm font-medium transition-colors ${
+              className={`px-6 py-4 text-sm font-medium transition-colors flex items-center gap-2 ${
                 activeTab === "simulator"
                   ? "text-navy border-b-2 border-navy"
                   : "text-muted-text hover:text-body-text"
               }`}
-              onClick={() => { setActiveTab("simulator"); setActivePill("parametros"); }}
+              onClick={() => { setActiveTab("simulator"); setActivePill("datos"); window.history.replaceState(null, "", "#simulador"); }}
             >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
               Simulador
             </button>
           </div>
-          <div className="flex gap-2 py-2 overflow-x-auto no-scrollbar">
+          <div className="flex justify-center gap-2.5 py-3 overflow-x-auto no-scrollbar">
             {pills.map(pill => (
               <button
                 key={pill.id}
-                className={`px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                className={`px-4 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                   activePill === pill.id
                     ? "bg-navy text-white"
                     : "bg-gray-100 text-muted-text hover:bg-gray-200"

@@ -8,47 +8,81 @@ import {
   compareAllocations
 } from "@/lib/electoral-methods";
 import {
-  circunscripciones as defaultCirc,
-  parties,
+  parties as parties2023,
   calculateNationalTotals,
   CircunscripcionData
 } from "@/data/elections2023";
+import { electionData, electionMetadata } from "@/data/all-elections";
+import { historicalParties } from "@/data/historical-elections";
 import ComparisonChart from "./ComparisonChart";
 import ResultsTable from "./ResultsTable";
 import Pactometro from "./Pactometro";
 
-const PRESETS = {
-  "2023": { name: "2023 (Real)", votes: null },
-  "ppMayoria": {
-    name: "PP mayoría",
-    multipliers: { PP: 1.3, PSOE: 0.85, VOX: 0.9, SUMAR: 0.8 }
+const PRESETS: {[key: string]: { name: string; multipliers?: {[party: string]: number} }} = {
+  "real": { name: "Resultado real" },
+  "derechasFuerte": {
+    name: "Derechas +",
+    multipliers: { PP: 1.3, PSOE: 0.85, VOX: 1.1, Cs: 1.1 }
   },
-  "psoeMayoria": {
-    name: "PSOE mayoría",
-    multipliers: { PP: 0.85, PSOE: 1.3, VOX: 0.7, SUMAR: 1.1 }
+  "izquierdasFuerte": {
+    name: "Izquierdas +",
+    multipliers: { PSOE: 1.3, PP: 0.85, SUMAR: 1.1, UP: 1.1, Podemos: 1.1 }
   },
   "empate": {
     name: "Empate técnico",
-    multipliers: { PP: 1.0, PSOE: 1.05, VOX: 0.9, SUMAR: 1.0 }
+    multipliers: { PP: 1.0, PSOE: 1.05 }
   },
   "terceros": {
     name: "Auge terceros",
-    multipliers: { PP: 0.8, PSOE: 0.8, VOX: 1.4, SUMAR: 1.5 }
+    multipliers: { PP: 0.8, PSOE: 0.8, VOX: 1.4, SUMAR: 1.5, Cs: 1.4, UP: 1.4 }
   },
 };
 
+const ELECTION_YEARS = Object.keys(electionMetadata).sort((a, b) => b.localeCompare(a));
+
 export default function Simulator() {
+  const [selectedYear, setSelectedYear] = useState("2023");
   const [governabilityBonus, setGovernabilityBonus] = useState(0);
   const [threshold, setThreshold] = useState(3);
-  const [selectedPreset, setSelectedPreset] = useState<string>("2023");
-  const [voteMultipliers, setVoteMultipliers] = useState<{[party: string]: number}>({
-    PP: 1.0, PSOE: 1.0, VOX: 1.0, SUMAR: 1.0,
-    ERC: 1.0, JUNTS: 1.0, PNV: 1.0, BILDU: 1.0, BNG: 1.0, CCA: 1.0,
-  });
+  const [selectedPreset, setSelectedPreset] = useState<string>("real");
+  const [voteMultipliers, setVoteMultipliers] = useState<{[party: string]: number}>({});
   const [activeSection, setActiveSection] = useState("parametros");
 
+  const baseCircumscriptions = electionData[selectedYear] || electionData["2023"];
+
+  // Get all parties present in the selected election
+  const activeParties = useMemo(() => {
+    const partyVotes: {[party: string]: number} = {};
+    baseCircumscriptions.forEach(circ => {
+      Object.entries(circ.votes).forEach(([party, votes]) => {
+        partyVotes[party] = (partyVotes[party] || 0) + votes;
+      });
+    });
+    // Only show parties with significant votes (>0.5% nationally)
+    const totalVotes = Object.values(partyVotes).reduce((a, b) => a + b, 0);
+    return Object.entries(partyVotes)
+      .filter(([_, votes]) => votes / totalVotes > 0.005)
+      .sort((a, b) => b[1] - a[1])
+      .map(([party]) => party);
+  }, [baseCircumscriptions]);
+
+  // Build a PartyInfo-compatible map from historicalParties
+  const parties = useMemo(() => {
+    const result: {[key: string]: { name: string; shortName: string; color: string; national: boolean }} = {};
+    for (const [key, info] of Object.entries(historicalParties)) {
+      result[key] = { name: info.name, shortName: key, color: info.color, national: true };
+    }
+    return result;
+  }, []);
+
+  const changeYear = (year: string) => {
+    setSelectedYear(year);
+    setSelectedPreset("real");
+    setVoteMultipliers({});
+  };
+
   const adjustedCircumscriptions = useMemo((): CircunscripcionData[] => {
-    return defaultCirc.map(circ => ({
+    return baseCircumscriptions.map(circ => ({
       ...circ,
       votes: Object.fromEntries(
         Object.entries(circ.votes).map(([party, votes]) => [
@@ -57,7 +91,23 @@ export default function Simulator() {
         ])
       )
     }));
-  }, [voteMultipliers]);
+  }, [baseCircumscriptions, voteMultipliers]);
+
+  // Base national votes (unadjusted, for summary pills)
+  const baseNationalVotes = useMemo(() =>
+    calculateNationalTotals(baseCircumscriptions),
+    [baseCircumscriptions]
+  );
+  const baseTotalVotes = Object.values(baseNationalVotes).reduce((a, b) => a + b, 0);
+
+  // Base D'Hondt result (unadjusted, for summary pills showing real seats)
+  const baseDHondtResult = useMemo(() =>
+    dHondtByCircumscription(
+      baseCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      0.03
+    ),
+    [baseCircumscriptions]
+  );
 
   const nationalVotes = useMemo(() =>
     calculateNationalTotals(adjustedCircumscriptions),
@@ -130,15 +180,12 @@ export default function Simulator() {
 
   const applyPreset = (presetKey: string) => {
     setSelectedPreset(presetKey);
-    if (presetKey === "2023") {
-      setVoteMultipliers({
-        PP: 1.0, PSOE: 1.0, VOX: 1.0, SUMAR: 1.0,
-        ERC: 1.0, JUNTS: 1.0, PNV: 1.0, BILDU: 1.0, BNG: 1.0, CCA: 1.0,
-      });
+    if (presetKey === "real") {
+      setVoteMultipliers({});
     } else {
-      const preset = PRESETS[presetKey as keyof typeof PRESETS];
-      if ('multipliers' in preset) {
-        setVoteMultipliers(prev => ({ ...prev, ...preset.multipliers }));
+      const preset = PRESETS[presetKey];
+      if (preset?.multipliers) {
+        setVoteMultipliers({ ...preset.multipliers });
       }
     }
   };
@@ -158,90 +205,96 @@ export default function Simulator() {
 
   return (
     <div className="space-y-16">
-      {/* ===== PARÁMETROS ===== */}
-      <section id="parametros" className="space-y-6">
+      {/* ===== DATOS ===== */}
+      <section id="datos" className="space-y-6">
         <div>
-          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Parámetros del sistema</p>
-          <h2 className="font-serif text-3xl md:text-5xl text-navy mb-2">Simulador electoral</h2>
+          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Simulador</p>
+          <h2 className="font-serif text-3xl md:text-5xl text-navy mb-2">Datos electorales</h2>
           <p className="text-sm text-muted-text max-w-md">
-            Configura los parámetros del sistema electoral, selecciona unas elecciones y simula escenarios alternativos.
+            Selecciona unas elecciones reales como base para la simulación. Puedes ajustar los votos de cada partido para explorar escenarios alternativos.
           </p>
         </div>
 
-        {/* Presets */}
+        {/* Year selector */}
         <div>
-          <label className="text-xs font-semibold text-muted-text uppercase tracking-wider block mb-2">Escenario</label>
+          <label className="text-xs font-semibold text-muted-text uppercase tracking-wider block mb-2">Elecciones</label>
           <div className="flex flex-wrap gap-2">
-            {Object.entries(PRESETS).map(([key, preset]) => (
-              <button
-                key={key}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                  selectedPreset === key
-                    ? "bg-navy text-white"
-                    : "bg-gray-100 text-muted-text hover:bg-gray-200"
-                }`}
-                onClick={() => applyPreset(key)}
+            {ELECTION_YEARS.map(year => {
+              const meta = electionMetadata[year];
+              return (
+                <button
+                  key={year}
+                  className={`px-4 py-2 rounded-xl text-xs font-medium transition-colors ${
+                    selectedYear === year
+                      ? "bg-navy text-white"
+                      : "bg-gray-100 text-muted-text hover:bg-gray-200"
+                  }`}
+                  onClick={() => changeYear(year)}
+                >
+                  <span className="block font-semibold">{meta.year}</span>
+                  <span className="block text-[10px] opacity-70">{meta.date.split(" de ").slice(0, 2).join(" ")}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Party summary pills */}
+        <div className="flex flex-wrap gap-2">
+          {activeParties.map(partyKey => {
+            const partyInfo = parties[partyKey] || { name: partyKey, color: "#888" };
+            const votes = baseNationalVotes[partyKey] || 0;
+            const pct = baseTotalVotes > 0 ? (votes / baseTotalVotes * 100).toFixed(1) : "0";
+            const seats = baseDHondtResult.national[partyKey] || 0;
+            return (
+              <span
+                key={partyKey}
+                className="inline-flex items-center gap-1.5 pl-2 pr-2.5 py-1 rounded-full text-xs font-medium text-white"
+                style={{ backgroundColor: partyInfo.color }}
               >
-                {preset.name}
-              </button>
-            ))}
-            {selectedPreset === "custom" && (
-              <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-step-amber-light text-step-amber">Personalizado</span>
-            )}
-          </div>
+                {partyKey}
+                <span className="opacity-80">{pct}%</span>
+                <span className="bg-white/20 rounded-full px-1.5 py-0.5 text-[10px] font-bold">{seats}</span>
+              </span>
+            );
+          })}
         </div>
 
-        {/* Sliders */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-navy">Umbral electoral</label>
-              <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-navy">{threshold}%</span>
-            </div>
-            <input
-              type="range"
-              min="0" max="10" step="0.5"
-              value={threshold}
-              onChange={(e) => setThreshold(parseFloat(e.target.value))}
-              className="range range-sm range-primary w-full"
-            />
-            <div className="flex justify-between text-[10px] text-muted-text mt-1">
-              <span>0%</span>
-              <span>3% (actual)</span>
-              <span>5% (Alemania)</span>
-              <span>10%</span>
-            </div>
-          </div>
+        {/* Vote adjusters + presets + sliders — collapsible */}
+        <details className="group">
+          <summary className="flex items-center justify-between cursor-pointer mb-3 [&::-webkit-details-marker]:hidden">
+            <span className="text-sm font-medium text-navy flex items-center gap-2">
+              Ajustar votos por partido
+              <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
+            </span>
+            <span className="text-[10px] text-muted-text">Multiplicador: 0.5× – 1.5× (1× = votos reales {selectedYear})</span>
+          </summary>
 
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-sm font-medium text-navy">Bonificación gobernabilidad</label>
-              <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-navy">{governabilityBonus} esc.</span>
+          {/* Presets */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-muted-text uppercase tracking-wider block mb-2">Escenario</label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(PRESETS).map(([key, preset]) => (
+                <button
+                  key={key}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+                    selectedPreset === key
+                      ? "bg-navy text-white"
+                      : "bg-gray-100 text-muted-text hover:bg-gray-200"
+                  }`}
+                  onClick={() => applyPreset(key)}
+                >
+                  {preset.name}
+                </button>
+              ))}
+              {selectedPreset === "custom" && (
+                <span className="px-3 py-1.5 rounded-full text-xs font-medium bg-step-amber-light text-step-amber">Personalizado</span>
+              )}
             </div>
-            <input
-              type="range"
-              min="0" max="30" step="5"
-              value={governabilityBonus}
-              onChange={(e) => setGovernabilityBonus(parseInt(e.target.value))}
-              className="range range-sm range-secondary w-full"
-            />
-            <div className="flex justify-between text-[10px] text-muted-text mt-1">
-              <span>0 (puro)</span>
-              <span>10</span>
-              <span>20</span>
-              <span>30</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Vote adjusters — always visible */}
-        <div>
-          <div className="flex items-center justify-between mb-3">
-            <label className="text-sm font-medium text-navy">Ajustar votos por partido</label>
-            <span className="text-[10px] text-muted-text">Multiplicador: 0.5× – 1.5× (1× = votos reales 2023)</span>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-            {Object.entries(parties).filter(([key]) => nationalVotes[key]).map(([partyKey, partyInfo]) => {
+            {activeParties.map(partyKey => {
+              const partyInfo = parties[partyKey] || { name: partyKey, color: "#888" };
               const currentVotes = nationalVotes[partyKey] || 0;
               const percentage = totalVotes > 0 ? (currentVotes / totalVotes * 100).toFixed(1) : "0";
               const multiplier = voteMultipliers[partyKey] || 1.0;
@@ -271,8 +324,126 @@ export default function Simulator() {
             })}
           </div>
           <p className="text-[10px] text-muted-text mt-3 rounded-lg bg-gray-50 p-2.5">
-            <strong>Guía de rangos realistas:</strong> x0.7-0.9 Caída significativa · x1.0 Real 2023 · x1.1-1.3 Crecimiento notable · x1.3+ Escenario excepcional
+            <strong>Guía de rangos realistas:</strong> x0.7-0.9 Caída significativa · x1.0 Real {selectedYear} · x1.1-1.3 Crecimiento notable · x1.3+ Escenario excepcional
           </p>
+        </details>
+      </section>
+
+      {/* ===== PARÁMETROS GIME ===== */}
+      <section id="parametros" className="space-y-6">
+        <div>
+          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Parámetros del método</p>
+          <h3 className="font-serif text-2xl md:text-3xl text-navy mb-2">Configuración GIME</h3>
+          <p className="text-sm text-muted-text max-w-lg">
+            Estos dos parámetros controlan cómo se aplica el Método GIME. El umbral electoral filtra a los partidos sin representación mínima, y la bonificación premia al partido más votado para facilitar la formación de gobierno.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-gray-100 bg-white p-5">
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-sm font-semibold text-navy">Umbral electoral</label>
+              <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-navy">{threshold}%</span>
+            </div>
+            <p className="text-[11px] text-muted-text mb-3">
+              Porcentaje mínimo de votos que un partido necesita en una circunscripción para optar a escaño. En España es el 3%. En Alemania el 5%.
+            </p>
+            <input
+              type="range"
+              min="0" max="10" step="0.5"
+              value={threshold}
+              onChange={(e) => setThreshold(parseFloat(e.target.value))}
+              className="range range-sm range-primary w-full"
+            />
+            <div className="flex justify-between text-[10px] text-muted-text mt-1">
+              <span>0%</span>
+              <span>3% (actual)</span>
+              <span>5% (Alemania)</span>
+              <span>10%</span>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-5">
+            <div className="flex justify-between items-center mb-1">
+              <label className="text-sm font-semibold text-navy">Bonificación gobernabilidad</label>
+              <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-navy">{governabilityBonus} esc.</span>
+            </div>
+            <p className="text-[11px] text-muted-text mb-3">
+              Escaños extra asignados al partido más votado para facilitar la formación de gobierno. Se restan proporcionalmente del resto. Grecia otorga 50 escaños extra al ganador. Italia garantiza el 55% de escaños al partido/coalición más votado. Francia usa segunda vuelta en circunscripciones uninominales, lo que genera una prima natural al ganador.
+            </p>
+            <input
+              type="range"
+              min="0" max="30" step="5"
+              value={governabilityBonus}
+              onChange={(e) => setGovernabilityBonus(parseInt(e.target.value))}
+              className="range range-sm range-secondary w-full"
+            />
+            <div className="flex justify-between text-[10px] text-muted-text mt-1">
+              <span>0 (puro)</span>
+              <span>10</span>
+              <span>20</span>
+              <span>30</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== RESULTADOS ===== */}
+      <section id="resultados" className="space-y-6">
+        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Comparación</p>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
+
+        {/* Chart */}
+        <div>
+          <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs GIME</h4>
+          <ComparisonChart
+            dHondt={dHondtResult.national}
+            gime={gimeNational}
+            parties={parties}
+          />
+        </div>
+
+        {/* Table */}
+        <div>
+          <h4 className="text-sm font-semibold text-navy mb-3">Tabla detallada</h4>
+          <ResultsTable
+            dHondt={dHondtResult.national}
+            gime={gimeNational}
+            votes={nationalVotes}
+            parties={parties}
+          />
+        </div>
+
+        {/* Winners/losers */}
+        <div>
+          <h4 className="text-sm font-semibold text-navy mb-3">¿Quién gana y pierde con GIME?</h4>
+          <p className="text-xs text-muted-text mb-4">
+            Diferencia de escaños entre D&apos;Hondt y GIME. Verde = gana, Rojo = pierde.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {comparison
+              .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
+              .filter(c => c.method1 > 0 || c.method2 > 0)
+              .map(c => (
+                <span
+                  key={c.party}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                    c.diff > 0
+                      ? "bg-emerald-50 text-emerald-700"
+                      : c.diff < 0
+                      ? "bg-red-50 text-red-700"
+                      : "bg-gray-50 text-muted-text"
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: parties[c.party]?.color || "#888" }} />
+                  {c.party}
+                  {c.diff !== 0 && (
+                    <span className="font-semibold">{c.diff > 0 ? "+" : ""}{c.diff}</span>
+                  )}
+                  {c.diff === 0 && <span>0</span>}
+                </span>
+              ))}
+          </div>
         </div>
       </section>
 
@@ -393,65 +564,6 @@ export default function Simulator() {
         <div className="rounded-xl bg-gray-50 p-4 text-xs text-muted-text">
           <strong className="text-body-text">Cálculo:</strong> existencia de coaliciones viables (40pts), número de opciones (20pts),
           mayoría con 2 partidos (20pts), margen sobre mayoría absoluta (20pts).
-        </div>
-      </section>
-
-      {/* ===== RESULTADOS ===== */}
-      <section id="resultados" className="space-y-6">
-        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Comparación</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
-
-        {/* Chart */}
-        <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs GIME</h4>
-          <ComparisonChart
-            dHondt={dHondtResult.national}
-            gime={gimeNational}
-            parties={parties}
-          />
-        </div>
-
-        {/* Table */}
-        <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">Tabla detallada</h4>
-          <ResultsTable
-            dHondt={dHondtResult.national}
-            gime={gimeNational}
-            votes={nationalVotes}
-            parties={parties}
-          />
-        </div>
-
-        {/* Winners/losers */}
-        <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">¿Quién gana y pierde con GIME?</h4>
-          <p className="text-xs text-muted-text mb-4">
-            Diferencia de escaños entre D&apos;Hondt y GIME. Verde = gana, Rojo = pierde.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {comparison
-              .sort((a, b) => Math.abs(b.diff) - Math.abs(a.diff))
-              .filter(c => c.method1 > 0 || c.method2 > 0)
-              .map(c => (
-                <span
-                  key={c.party}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                    c.diff > 0
-                      ? "bg-emerald-50 text-emerald-700"
-                      : c.diff < 0
-                      ? "bg-red-50 text-red-700"
-                      : "bg-gray-50 text-muted-text"
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: parties[c.party]?.color || "#888" }} />
-                  {c.party}
-                  {c.diff !== 0 && (
-                    <span className="font-semibold">{c.diff > 0 ? "+" : ""}{c.diff}</span>
-                  )}
-                  {c.diff === 0 && <span>0</span>}
-                </span>
-              ))}
-          </div>
         </div>
       </section>
 
