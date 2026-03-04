@@ -10,7 +10,7 @@ import { dHondtByCircumscription, runGIME } from "@/lib/electoral-methods";
 const TAB1_PILLS = [
   { id: "problema", label: "El Problema" },
   { id: "circunscripciones", label: "El Sistema Actual" },
-  { id: "pasos", label: "La Solución" },
+  { id: "pasos", label: "La Teoría" },
   { id: "sobre", label: "Sobre GIME" },
 ];
 
@@ -110,7 +110,7 @@ export default function Home() {
               onClick={() => { setActiveTab("intro"); setActivePill("problema"); window.history.replaceState(null, "", "#problema"); }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-              La Solución
+              La Teoría
             </button>
             <button
               className={`px-6 py-4 text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -164,10 +164,10 @@ export default function Home() {
                     <h3 className="font-semibold text-navy text-sm">Sistema actual</h3>
                   </div>
                   <ul className="space-y-2.5 text-sm text-muted-text">
-                    <li>Partidos pequeños y medianos infrarepresentados</li>
                     <li>Voto perdido en circunscripciones pequeñas</li>
                     <li>Desigualdad del valor del voto según provincia</li>
-                    <li>Prima a partidos con voto concentrado</li>
+                    <li>Partidos pequeños y medianos nacionales infrarepresentados</li>
+                    <li>Prima en exceso a partidos regionalistas</li>
                   </ul>
                 </div>
 
