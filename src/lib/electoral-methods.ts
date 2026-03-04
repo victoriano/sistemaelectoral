@@ -316,6 +316,62 @@ export function gallagherIndex(
 }
 
 /**
+ * Calcula los votos "en restos" (wasted votes) por circunscripción.
+ * Para D'Hondt: votos de partidos que obtuvieron 0 escaños en cada circunscripción.
+ * Estos son los votos que literalmente no eligieron a nadie.
+ */
+export function calculateWastedVotesCirc(
+  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptionResults: CircumscriptionResult[]
+): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
+  const wasted: { [party: string]: number } = {};
+  let totalVotesSum = 0;
+
+  circumscriptions.forEach((circ, i) => {
+    const result = circumscriptionResults[i];
+    if (!result) return;
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      totalVotesSum += votes;
+      if (votes > 0 && (result.allocation[party] || 0) === 0) {
+        wasted[party] = (wasted[party] || 0) + votes;
+      }
+    });
+  });
+
+  const total = Object.values(wasted).reduce((a, b) => a + b, 0);
+  return { byParty: wasted, total, totalVotes: totalVotesSum };
+}
+
+/**
+ * Calcula los votos "en restos" para el método Biproporcional.
+ * Usa la misma lógica por circunscripción, pero excluye partidos que tienen
+ * escaños a nivel nacional, ya que en el sistema biproporcional sus votos
+ * cuentan nacionalmente aunque no obtengan escaño en esa circunscripción.
+ */
+export function calculateWastedVotesBiprop(
+  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptionResults: CircumscriptionResult[],
+  nationalSeats: { [party: string]: number }
+): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
+  const wasted: { [party: string]: number } = {};
+  let totalVotesSum = 0;
+
+  circumscriptions.forEach((circ, i) => {
+    const result = circumscriptionResults[i];
+    if (!result) return;
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      totalVotesSum += votes;
+      if (votes > 0 && (result.allocation[party] || 0) === 0 && (nationalSeats[party] || 0) === 0) {
+        wasted[party] = (wasted[party] || 0) + votes;
+      }
+    });
+  });
+
+  const total = Object.values(wasted).reduce((a, b) => a + b, 0);
+  return { byParty: wasted, total, totalVotes: totalVotesSum };
+}
+
+/**
  * Calcula la diferencia entre dos asignaciones
  */
 export function compareAllocations(

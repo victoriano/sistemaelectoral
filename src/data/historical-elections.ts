@@ -205,6 +205,21 @@ export const historicalParties: { [key: string]: { name: string; color: string }
   "TERUEL EXISTE": { name: "Teruel Existe", color: "#147a3b" },
   "MÉS": { name: "Més per Mallorca", color: "#d25d10" },
   "Més": { name: "Més per Mallorca", color: "#d25d10" },
+  // Partidos históricos (1993-2011)
+  HB: { name: "Herri Batasuna", color: "#6b8e23" },
+  CDS: { name: "Centro Democrático y Social", color: "#2e8b57" },
+  PA: { name: "Partido Andalucista", color: "#4caf50" },
+  UV: { name: "Unió Valenciana", color: "#0099cc" },
+  EUPV: { name: "Esquerra Unida del País Valencià", color: "#d40000" },
+  "IC-V": { name: "Iniciativa per Catalunya Verds", color: "#4caf50" },
+  ARALAR: { name: "Aralar", color: "#c41e3a" },
+  EQUO: { name: "EQUO", color: "#4caf50" },
+  BLOC: { name: "Bloc Nacionalista Valencià", color: "#0099cc" },
+  PAR: { name: "Partido Aragonés", color: "#ffcc00" },
+  "ECP-GUANYEM": { name: "En Comú Podem", color: "#6a2c70" },
+  "JxCAT-JUNTS": { name: "Junts per Catalunya", color: "#00b2a9" },
+  "JxCAT - JUNTS": { name: "Junts per Catalunya", color: "#00b2a9" },
+  "PODEMOS/AHAL DUGU-IU-EQUO": { name: "Podemos-IU", color: "#6a2c70" },
 };
 
 export function getElectionYears(): string[] {

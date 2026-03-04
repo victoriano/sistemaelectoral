@@ -5,7 +5,9 @@ import {
   dHondtByCircumscription,
   runGIME,
   gallagherIndex,
-  compareAllocations
+  compareAllocations,
+  calculateWastedVotesCirc,
+  calculateWastedVotesBiprop
 } from "@/lib/electoral-methods";
 import {
   parties as parties2023,
@@ -135,6 +137,26 @@ export default function Simulator() {
   }, [adjustedCircumscriptions, governabilityBonus, threshold, totalSeats]);
 
   const gimeNational = gimeResults[gimeResults.length - 1].nationalAllocation;
+
+  // D'Hondt: circumscription-level waste (votes in circs where party got 0 seats)
+  const wastedDHondt = useMemo(() =>
+    calculateWastedVotesCirc(
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      dHondtResult.results
+    ),
+    [adjustedCircumscriptions, dHondtResult]
+  );
+
+  // Biprop: circumscription-level waste, but only for parties without national seats
+  // (parties with national seats have their votes count nationally in biprop)
+  const wastedBiprop = useMemo(() => {
+    const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
+    return calculateWastedVotesBiprop(
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      stage2?.circumscriptionAllocations || [],
+      gimeNational
+    );
+  }, [adjustedCircumscriptions, gimeResults, gimeNational]);
 
   const gallagherDHondt = gallagherIndex(nationalVotes, dHondtResult.national);
   const gallagherGIME = gallagherIndex(nationalVotes, gimeNational);
@@ -513,6 +535,121 @@ export default function Simulator() {
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
           <strong>Referencia:</strong> España actual ~5-6 · Países Bajos ~1 · Reino Unido ~15-20
+        </div>
+      </section>
+
+      {/* ===== VOTOS EN RESTOS ===== */}
+      <section id="restos" className="space-y-6">
+        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos perdidos</p>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos en restos</h3>
+        <p className="text-sm text-muted-text">
+          Votos que no contribuyeron a elegir ningún representante. En D&apos;Hondt, se cuentan por circunscripción (votos de partidos que no obtuvieron escaño en esa provincia). En el Biproporcional, solo se pierden los votos de partidos sin representación nacional.
+        </p>
+
+        {(() => {
+          const improvement = wastedDHondt.total > 0
+            ? ((wastedDHondt.total - wastedBiprop.total) / wastedDHondt.total * 100)
+            : 0;
+          const bipropBetter = wastedBiprop.total <= wastedDHondt.total;
+          return (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-2xl border border-red-100 bg-red-50/30 p-5 text-center">
+                  <div className="text-xs text-muted-text mb-1 uppercase tracking-wider">D&apos;Hondt</div>
+                  <div className="text-3xl font-serif text-accent-red">
+                    {(wastedDHondt.total / 1_000_000).toFixed(1)}M
+                  </div>
+                  <div className="text-[10px] text-muted-text mt-1">
+                    {wastedDHondt.totalVotes > 0
+                      ? `${(wastedDHondt.total / wastedDHondt.totalVotes * 100).toFixed(1)}% del total`
+                      : "—"
+                    }
+                  </div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño en su circunscripción</div>
+                </div>
+                <div className={`rounded-2xl border p-5 text-center ${
+                  bipropBetter ? "border-emerald-100 bg-emerald-50/30" : "border-amber-100 bg-amber-50/30"
+                }`}>
+                  <div className="text-xs text-muted-text mb-1 uppercase tracking-wider">Biproporcional</div>
+                  <div className={`text-3xl font-serif ${bipropBetter ? "text-emerald-600" : "text-amber-600"}`}>
+                    {(wastedBiprop.total / 1_000_000).toFixed(1)}M
+                  </div>
+                  <div className="text-[10px] text-muted-text mt-1">
+                    {wastedBiprop.totalVotes > 0
+                      ? `${(wastedBiprop.total / wastedBiprop.totalVotes * 100).toFixed(1)}% del total`
+                      : "—"
+                    }
+                  </div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos bajo umbral nacional</div>
+                </div>
+                <div className={`rounded-2xl p-5 text-center text-white ${
+                  bipropBetter ? "bg-emerald-500" : "bg-amber-500"
+                }`}>
+                  <div className="text-xs text-white/70 mb-1 uppercase tracking-wider">
+                    {bipropBetter ? "Mejora" : "Trade-off"}
+                  </div>
+                  <div className="text-3xl font-serif">
+                    {wastedDHondt.total > 0
+                      ? `${improvement > 0 ? "+" : ""}${improvement.toFixed(0)}%`
+                      : "—"
+                    }
+                  </div>
+                  <div className="text-[10px] text-white/60 mt-1">
+                    {bipropBetter
+                      ? "Reducción de votos perdidos"
+                      : "El umbral nacional afecta a partidos regionalistas"
+                    }
+                  </div>
+                </div>
+              </div>
+
+              {!bipropBetter && (
+                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-body-text">
+                  <strong>¿Por qué el Biproporcional pierde más votos?</strong> Con un umbral del {threshold}% aplicado a nivel nacional,
+                  los partidos regionalistas (ERC, Junts, PNV, Bildu...) quedan por debajo y pierden toda su representación.
+                  En D&apos;Hondt, el mismo umbral se aplica por circunscripción, donde estos partidos sí superan el {threshold}%.
+                  <strong> Prueba a bajar el umbral electoral</strong> para ver cómo cambia esta cifra.
+                </div>
+              )}
+            </>
+          );
+        })()}
+
+        {/* Per-party wasted votes breakdown */}
+        <details className="group">
+          <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
+            Detalle por partido (D&apos;Hondt)
+            <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
+          </summary>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(wastedDHondt.byParty)
+              .sort((a, b) => b[1] - a[1])
+              .filter(([_, votes]) => votes > 10000)
+              .map(([party, votes]) => {
+                const bipropVotes = wastedBiprop.byParty[party] || 0;
+                const rescued = bipropVotes === 0 && votes > 0;
+                return (
+                  <span
+                    key={party}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
+                      rescued ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: parties[party]?.color || "#888" }} />
+                    {party}
+                    <span className="font-mono">{(votes / 1000).toFixed(0)}k</span>
+                    {rescued && (
+                      <span className="text-[10px] font-semibold">rescatados</span>
+                    )}
+                  </span>
+                );
+              })}
+          </div>
+        </details>
+
+        <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
+          <strong>Metodología:</strong> D&apos;Hondt cuenta votos en circunscripciones donde el partido obtuvo 0 escaños.
+          El Biproporcional solo cuenta votos de partidos que no superaron el umbral nacional, ya que los demás votos contribuyen al reparto nacional independientemente de la circunscripción.
         </div>
       </section>
 
