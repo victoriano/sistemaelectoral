@@ -153,7 +153,7 @@ export default function Home() {
                 Millones de votos se quedan sin representación política con el sistema de reparto de escaños actual
               </h2>
               <p className="text-base text-muted-text mb-10 max-w-lg">
-                El sistema D&apos;Hondt por circunscripciones produce una desproporcionalidad significativa. Los partidos grandes ganan escaños de más y los pequeños pierden representación.
+                El sistema D&apos;Hondt por circunscripciones produce una desproporcionalidad significativa.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -164,7 +164,7 @@ export default function Home() {
                     <h3 className="font-semibold text-navy text-sm">Sistema actual</h3>
                   </div>
                   <ul className="space-y-2.5 text-sm text-muted-text">
-                    <li>Partidos grandes sobrerrepresentados</li>
+                    <li>Partidos pequeños y medianos infrarepresentados</li>
                     <li>Voto perdido en circunscripciones pequeñas</li>
                     <li>Desigualdad del valor del voto según provincia</li>
                     <li>Prima a partidos con voto concentrado</li>
@@ -184,6 +184,25 @@ export default function Home() {
                     <li>Transparente y matemáticamente riguroso</li>
                   </ul>
                 </div>
+              </div>
+
+              {/* Preguntas para reflexionar */}
+              <div className="mt-10 rounded-2xl bg-gray-50 border border-gray-200 p-6">
+                <h3 className="font-serif text-lg text-navy mb-4">Preguntas para reflexionar</h3>
+                <ul className="space-y-4 text-sm text-body-text">
+                  <li className="flex items-start gap-3">
+                    <span className="text-accent-red font-bold mt-0.5">?</span>
+                    <span>Si los partidos pequeños y medianos de ámbito nacional consiguieran una representación más justa, ¿favorecería la presencia de fuerzas menos radicalizadas que facilitasen pactos y una gobernabilidad más democrática?</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-accent-red font-bold mt-0.5">?</span>
+                    <span>Si estos partidos nacionales tuvieran más peso, ¿representaría la cámara mejor los intereses del conjunto del país, en lugar de una donde los partidos nacionalistas regionalistas están sobrerrepresentados y condicionan la gobernabilidad?</span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <span className="text-accent-red font-bold mt-0.5">?</span>
+                    <span>¿Cuántos votantes han dejado de apoyar a partidos que les representan mejor por miedo a &ldquo;tirar su voto&rdquo; en una circunscripción pequeña?</span>
+                  </li>
+                </ul>
               </div>
             </section>
 
