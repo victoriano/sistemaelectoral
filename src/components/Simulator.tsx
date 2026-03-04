@@ -47,6 +47,7 @@ export default function Simulator() {
   const [selectedPreset, setSelectedPreset] = useState<string>("real");
   const [voteMultipliers, setVoteMultipliers] = useState<{[party: string]: number}>({});
   const [activeSection, setActiveSection] = useState("parametros");
+  const [resultsView, setResultsView] = useState<"table" | "chart">("table");
 
   const baseCircumscriptions = electionData[selectedYear] || electionData["2023"];
 
@@ -241,9 +242,9 @@ export default function Simulator() {
 
         {/* Methodology note for projections */}
         {selectedYear === "2027*" && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-900">
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-sm text-body-text">
             <p className="font-semibold mb-1">* Proyección basada en encuestas</p>
-            <p className="text-xs text-amber-700">
+            <p className="text-xs text-muted-text">
               Promedio de 5 encuestas de febrero 2026 (Ateneo del Dato, Target Point, NC Report, Sociométrica, 40dB).
               Los votos se distribuyen por provincia usando los patrones geográficos de 2023. Los partidos regionales
               mantienen su distribución de 2023. Se asume la misma participación total.
@@ -279,8 +280,9 @@ export default function Simulator() {
               Ajustar votos por partido
               <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
             </span>
-            <span className="text-[10px] text-muted-text">Multiplicador: 0.5× – 1.5× (1× = votos reales {selectedYear})</span>
           </summary>
+
+          <p className="text-[10px] text-muted-text mb-4">Multiplicador: 0.5× – 1.5× (1× = votos reales {selectedYear})</p>
 
           {/* Presets */}
           <div className="mb-4">
@@ -341,13 +343,13 @@ export default function Simulator() {
         </details>
       </section>
 
-      {/* ===== PARÁMETROS GIME ===== */}
+      {/* ===== PARÁMETROS BIPROPORCIONAL ===== */}
       <section id="parametros" className="space-y-6">
         <div>
           <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Parámetros del método</p>
-          <h3 className="font-serif text-2xl md:text-3xl text-navy mb-2">Configuración GIME</h3>
+          <h3 className="font-serif text-2xl md:text-3xl text-navy mb-2">Configuración Biproporcional</h3>
           <p className="text-sm text-muted-text max-w-lg">
-            Estos dos parámetros controlan cómo se aplica el Método GIME. El umbral electoral filtra a los partidos sin representación mínima, y la bonificación premia al partido más votado para facilitar la formación de gobierno.
+            Estos dos parámetros controlan cómo se aplica el Método Biproporcional. El umbral electoral filtra a los partidos sin representación mínima, y la bonificación premia al partido más votado para facilitar la formación de gobierno.
           </p>
         </div>
 
@@ -403,34 +405,53 @@ export default function Simulator() {
       {/* ===== RESULTADOS ===== */}
       <section id="resultados" className="space-y-6">
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Comparación</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
-
-        {/* Chart */}
-        <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs GIME</h4>
-          <ComparisonChart
-            dHondt={dHondtResult.national}
-            gime={gimeNational}
-            parties={parties}
-          />
+        <div className="flex items-center justify-between">
+          <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
+          <button
+            onClick={() => setResultsView(v => v === "table" ? "chart" : "table")}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-text hover:text-navy hover:bg-gray-100 transition-colors"
+            title={resultsView === "table" ? "Ver gráfico" : "Ver tabla"}
+          >
+            {resultsView === "table" ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                Gráfico
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 10.875c-.621 0-1.125.504-1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m-1.125 1.125c0 .621.504 1.125 1.125 1.125m0 0h.008v.008h-.008v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                Tabla
+              </>
+            )}
+          </button>
         </div>
 
-        {/* Table */}
-        <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">Tabla detallada</h4>
-          <ResultsTable
-            dHondt={dHondtResult.national}
-            gime={gimeNational}
-            votes={nationalVotes}
-            parties={parties}
-          />
-        </div>
+        {resultsView === "table" ? (
+          <div>
+            <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs Biproporcional</h4>
+            <ResultsTable
+              dHondt={dHondtResult.national}
+              gime={gimeNational}
+              votes={nationalVotes}
+              parties={parties}
+            />
+          </div>
+        ) : (
+          <div>
+            <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs Biproporcional</h4>
+            <ComparisonChart
+              dHondt={dHondtResult.national}
+              gime={gimeNational}
+              parties={parties}
+            />
+          </div>
+        )}
 
         {/* Winners/losers */}
         <div>
-          <h4 className="text-sm font-semibold text-navy mb-3">¿Quién gana y pierde con GIME?</h4>
+          <h4 className="text-sm font-semibold text-navy mb-3">¿Quién gana y pierde con el Biproporcional?</h4>
           <p className="text-xs text-muted-text mb-4">
-            Diferencia de escaños entre D&apos;Hondt y GIME. Verde = gana, Rojo = pierde.
+            Diferencia de escaños entre D&apos;Hondt y Biproporcional. Verde = gana, Rojo = pierde.
           </p>
           <div className="flex flex-wrap gap-2">
             {comparison
@@ -474,7 +495,7 @@ export default function Simulator() {
             <div className="text-[10px] text-muted-text mt-1">más alto = más injusto</div>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 text-center">
-            <div className="text-xs text-muted-text mb-1 uppercase tracking-wider">GIME</div>
+            <div className="text-xs text-muted-text mb-1 uppercase tracking-wider">Biproporcional</div>
             <div className="text-3xl font-serif text-emerald-600">{gallagherGIME.toFixed(2)}</div>
             <div className="text-[10px] text-muted-text mt-1">más bajo = más justo</div>
           </div>
@@ -522,9 +543,9 @@ export default function Simulator() {
             </div>
           </div>
 
-          {/* GIME */}
+          {/* Biproporcional */}
           <div className="rounded-2xl bg-gray-50 p-6">
-            <h4 className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-4">Método GIME</h4>
+            <h4 className="text-xs font-semibold text-muted-text uppercase tracking-wider mb-4">Método Biproporcional</h4>
             <div className="flex items-center gap-5">
               <div
                 className="radial-progress text-step-pink"
@@ -548,7 +569,7 @@ export default function Simulator() {
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">Coalición</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">D&apos;Hondt</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">GIME</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">Biprop.</th>
               </tr>
             </thead>
             <tbody>
@@ -590,12 +611,12 @@ export default function Simulator() {
         />
       </section>
 
-      {/* ===== ETAPAS GIME ===== */}
+      {/* ===== ETAPAS BIPROPORCIONAL ===== */}
       <section id="etapas" className="space-y-6">
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Algoritmo</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Etapas del Método GIME</h3>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">Etapas del Método Biproporcional</h3>
         <p className="text-sm text-muted-text mb-4">
-          El método GIME funciona en etapas sucesivas.
+          El método biproporcional funciona en etapas sucesivas.
         </p>
 
         <div className="space-y-4">

@@ -125,7 +125,7 @@ export default function Pactometro({ dHondtSeats, gimeSeats }: PactometroProps) 
             }`}
             onClick={() => setMethod("gime")}
           >
-            Método GIME
+            Biproporcional
           </button>
         </div>
       </div>
@@ -322,14 +322,14 @@ export default function Pactometro({ dHondtSeats, gimeSeats }: PactometroProps) 
 
       {/* Comparison table */}
       <div>
-        <h4 className="text-sm font-semibold text-navy mb-4">¿Cambian los pactos con GIME?</h4>
+        <h4 className="text-sm font-semibold text-navy mb-4">¿Cambian los pactos con el Biproporcional?</h4>
         <div className="overflow-x-auto rounded-xl border border-gray-100">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/50">
                 <th className="text-left px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">Pacto</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">D&apos;Hondt</th>
-                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">GIME</th>
+                <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">Biprop.</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-muted-text uppercase tracking-wider">Dif.</th>
               </tr>
             </thead>

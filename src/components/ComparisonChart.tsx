@@ -26,10 +26,10 @@ export default function ComparisonChart({ dHondt, gime, parties }: Props) {
     .map(party => ({
       name: party,
       "D'Hondt": dHondt[party] || 0,
-      "GIME": gime[party] || 0,
+      "Biproporcional": gime[party] || 0,
       color: parties[party]?.color || "#888888"
     }))
-    .filter(d => d["D'Hondt"] > 0 || d["GIME"] > 0)
+    .filter(d => d["D'Hondt"] > 0 || d["Biproporcional"] > 0)
     .sort((a, b) => b["D'Hondt"] - a["D'Hondt"]);
 
   const chartHeight = Math.max(300, data.length * 48);
@@ -75,9 +75,9 @@ export default function ComparisonChart({ dHondt, gime, parties }: Props) {
             barSize={14}
           />
           <Bar
-            dataKey="GIME"
+            dataKey="Biproporcional"
             fill="#10b981"
-            name="Método GIME"
+            name="Método Biproporcional"
             radius={[0, 4, 4, 0]}
             barSize={14}
           />

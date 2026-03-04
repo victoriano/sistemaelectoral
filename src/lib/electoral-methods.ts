@@ -3,7 +3,7 @@
  * 
  * Incluye:
  * - Método D'Hondt tradicional (por circunscripción)
- * - Método GIME (Grupo de Investigación en Métodos Electorales)
+ * - Método Biproporcional (GIME - Grupo de Investigación en Métodos Electorales)
  */
 
 export interface VoteData {
@@ -103,7 +103,7 @@ export function dHondtByCircumscription(
 }
 
 // ==========================================
-// MÉTODO GIME (BIPROPORCIONAL)
+// MÉTODO BIPROPORCIONAL (GIME)
 // ==========================================
 
 /**
@@ -258,7 +258,7 @@ export function gimeStage3(
 }
 
 /**
- * Ejecuta el método GIME completo
+ * Ejecuta el método biproporcional completo
  */
 export function runGIME(
   circumscriptions: { name: string; seats: number; votes: VoteData }[],

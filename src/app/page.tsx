@@ -8,11 +8,10 @@ import { circunscripciones, realResults2023, parties } from "@/data/elections202
 import { dHondtByCircumscription, runGIME } from "@/lib/electoral-methods";
 
 const TAB1_PILLS = [
-  { id: "problema", label: "El problema" },
-  { id: "pasos", label: "Tres pasos" },
-  { id: "circunscripciones", label: "Circunscripciones" },
-  { id: "sobre", label: "Sobre el método" },
-  { id: "referencias", label: "Referencias" },
+  { id: "problema", label: "El Problema" },
+  { id: "circunscripciones", label: "El Sistema Actual" },
+  { id: "pasos", label: "La Solución" },
+  { id: "sobre", label: "Sobre GIME" },
 ];
 
 const TAB2_PILLS = [
@@ -22,7 +21,7 @@ const TAB2_PILLS = [
   { id: "gallagher", label: "Proporcionalidad" },
   { id: "gobernabilidad", label: "Gobernabilidad" },
   { id: "pactometro", label: "Pactómetro" },
-  { id: "etapas", label: "Etapas GIME" },
+  { id: "etapas", label: "Etapas Biproporcional" },
 ];
 
 const TAB2_IDS = TAB2_PILLS.map(p => p.id);
@@ -83,22 +82,14 @@ export default function Home() {
       {/* Hero */}
       <div className="bg-navy text-white pt-4 pb-8 md:pt-6 md:pb-12">
         <div className="max-w-5xl mx-auto px-5 md:px-20">
-          {/* Top bar */}
-          <div className="flex items-center gap-2 mb-6 md:mb-8">
-            <span className="w-2 h-2 rounded-full bg-accent-red" />
-            <span className="text-[10px] md:text-xs tracking-widest uppercase text-white/50">
-              Grupo de Investigación en Métodos Electorales
-            </span>
-          </div>
-
-          {/* Title + Logo */}
+{/* Title + Logo */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="font-serif text-4xl md:text-5xl tracking-tight mb-2">
-                Método GIME
+                Grupo de Investigación en Métodos Electorales
               </h1>
               <p className="text-sm text-white/50 max-w-md">
-                Un sistema electoral biproporcional que garantiza que cada voto cuente igual, sin importar la provincia.
+                Propuesta sistema electoral biproporcional para España para un Parlamento más ecuánime, representativo y gobernable.
               </p>
             </div>
             <img src="/ugr-logo-negativo.svg" alt="Universidad de Granada" className="h-32 md:h-48 opacity-90 flex-shrink-0" />
@@ -119,7 +110,7 @@ export default function Home() {
               onClick={() => { setActiveTab("intro"); setActivePill("problema"); window.history.replaceState(null, "", "#problema"); }}
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-              Cómo funciona
+              La Solución
             </button>
             <button
               className={`px-6 py-4 text-sm font-medium transition-colors flex items-center gap-2 ${
@@ -159,7 +150,7 @@ export default function Home() {
             <section id="problema">
               <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">El problema</p>
               <h2 className="font-serif text-3xl md:text-5xl text-navy mb-6 leading-tight">
-                Tu voto no vale lo mismo en todas las provincias
+                Millones de votos se quedan sin representación política con el sistema de reparto de escaños actual
               </h2>
               <p className="text-base text-muted-text mb-10 max-w-lg">
                 El sistema D&apos;Hondt por circunscripciones produce una desproporcionalidad significativa. Los partidos grandes ganan escaños de más y los pequeños pierden representación.
@@ -180,11 +171,11 @@ export default function Home() {
                   </ul>
                 </div>
 
-                {/* Método GIME card — white with green check */}
+                {/* Método Biproporcional card — white with green check */}
                 <div className="rounded-2xl border border-gray-200 bg-white p-6">
                   <div className="flex items-center gap-2 mb-5">
                     <span className="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 text-xs flex items-center justify-center font-bold">✓</span>
-                    <h3 className="font-semibold text-navy text-sm">Método GIME</h3>
+                    <h3 className="font-semibold text-navy text-sm">Método Biproporcional</h3>
                   </div>
                   <ul className="space-y-2.5 text-sm text-muted-text">
                     <li>Proporcionalidad perfecta a nivel nacional</li>
@@ -196,20 +187,11 @@ export default function Home() {
               </div>
             </section>
 
-            {/* ===== TRES PASOS ===== */}
-            <section id="pasos">
-              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Cómo funciona</p>
-              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-10 leading-tight">
-                Tres pasos hacia la proporcionalidad
-              </h2>
-              <StepExplanation />
-            </section>
-
-            {/* ===== CIRCUNSCRIPCIONES ===== */}
+            {/* ===== CIRCUNSCRIPCIONES Y D'HONDT ===== */}
             <section id="circunscripciones">
-              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Circunscripciones</p>
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">El sistema actual</p>
               <h2 className="font-serif text-3xl md:text-5xl text-navy mb-4 leading-tight">
-                52 provincias, un Congreso
+                Circunscripciones y D&apos;Hondt
               </h2>
               <p className="text-muted-text mb-8 max-w-lg text-sm">
                 España tiene 52 circunscripciones (50 provincias + Ceuta + Melilla). El tamaño del círculo representa el número de escaños asignados. El color indica si la provincia está sobre o infrarrepresentada respecto a su población.
@@ -220,77 +202,138 @@ export default function Home() {
                 selectedCirc={selectedCirc}
                 onSelect={setSelectedCirc}
               />
-            </section>
 
-            {/* ===== SOBRE EL MÉTODO ===== */}
-            <section id="sobre">
-              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Sobre el método</p>
-              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-8 leading-tight">
-                El Método GIME
-              </h2>
-
-              <div className="space-y-8 text-body-text leading-relaxed">
-                <p className="max-w-2xl">
-                  El <strong>Método GIME</strong> (Grupo de Investigación en Métodos Electorales) es una propuesta desarrollada por <strong>Victoriano Ramírez González</strong> de la Universidad de Granada.
-                </p>
-
+              {/* Explicación del sistema de circunscripciones */}
+              <div className="mt-12 space-y-8">
                 <div>
-                  <h3 className="font-serif text-xl text-navy mb-4">Principios fundamentales</h3>
-                  <ol className="space-y-3 max-w-2xl">
-                    <li className="flex items-start gap-3">
-                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-blue text-white text-[10px] flex items-center justify-center font-bold">1</span>
-                      <div className="text-sm"><strong>Proporcionalidad global</strong> — Los escaños totales de cada partido deben ser proporcionales a sus votos nacionales.</div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-amber text-white text-[10px] flex items-center justify-center font-bold">2</span>
-                      <div className="text-sm"><strong>Biproporcionalidad</strong> — La distribución debe satisfacer simultáneamente los totales por partido Y los totales por circunscripción.</div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-step-pink text-white text-[10px] flex items-center justify-center font-bold">3</span>
-                      <div className="text-sm"><strong>No regresión</strong> — Ningún partido puede perder escaños en etapas posteriores del algoritmo.</div>
-                    </li>
-                    <li className="flex items-start gap-3">
-                      <span className="mt-0.5 flex-shrink-0 w-5 h-5 rounded-full bg-navy text-white text-[10px] flex items-center justify-center font-bold">4</span>
-                      <div className="text-sm"><strong>Gobernabilidad (opcional)</strong> — Se puede aplicar una bonificación al partido ganador si se considera necesario.</div>
-                    </li>
-                  </ol>
+                  <h3 className="font-serif text-xl text-navy mb-4">Cómo funciona el reparto actual</h3>
+                  <p className="text-sm text-body-text leading-relaxed max-w-2xl mb-4">
+                    Los 350 escaños del Congreso se reparten entre las 52 circunscripciones. Cada provincia tiene un <strong>mínimo garantizado de 2 escaños</strong> (1 para Ceuta y Melilla), y los 248 restantes se distribuyen proporcionalmente a la población. Dentro de cada circunscripción, los escaños se asignan por el <strong>método D&apos;Hondt</strong>, que divide los votos de cada partido entre 1, 2, 3... y asigna escaños a los cocientes más altos.
+                  </p>
+                  <p className="text-sm text-body-text leading-relaxed max-w-2xl">
+                    Este diseño tiene una <strong>ventaja clara</strong>: garantiza la representación territorial de las provincias menos pobladas. Sin el mínimo de 2 escaños, provincias como Soria, Ceuta o Melilla no tendrían representación directa en el Congreso.
+                  </p>
                 </div>
 
-                {/* 2-column: biproporcionalidad + implementación */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4">
-                  <div>
-                    <h3 className="font-serif text-lg text-navy mb-3">¿Por qué biproporcionalidad?</h3>
-                    <p className="text-sm">
-                      El método biproporcional fue desarrollado matemáticamente por <strong>Friedrich Pukelsheim</strong> y se usa en cantones suizos como Zúrich desde 2006.
-                    </p>
+                <div>
+                  <h3 className="font-serif text-xl text-navy mb-4">El problema: la desigualdad del voto</h3>
+                  <p className="text-sm text-body-text leading-relaxed max-w-2xl mb-4">
+                    Sin embargo, el sistema produce <strong>grandes desigualdades</strong> en el valor del voto. En las elecciones del 23J de 2023, conseguir un escaño en Ceuta costó unos 13.000 votos, mientras que en Madrid hacían falta cerca de 100.000. Es decir, un voto en una provincia pequeña puede valer hasta <strong>8 veces más</strong> que en una grande.
+                  </p>
+                </div>
+
+                <div>
+                  <h3 className="font-serif text-xl text-navy mb-4">Quién gana y quién pierde</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                      <h4 className="font-semibold text-navy text-sm mb-3">Partidos beneficiados</h4>
+                      <ul className="space-y-2 text-sm text-muted-text">
+                        <li><strong>Partidos grandes</strong> (PP, PSOE) &mdash; el método D&apos;Hondt en circunscripciones pequeñas les da escaños extra</li>
+                        <li><strong>Partidos nacionalistas</strong> (PNV, Bildu, Junts, ERC) &mdash; su voto concentrado en pocas provincias se convierte eficientemente en escaños</li>
+                        <li><strong>Partidos localistas</strong> (Teruel Existe, UPN) &mdash; con menos de 20.000 votos pueden obtener representación</li>
+                      </ul>
+                    </div>
+                    <div className="rounded-2xl border border-gray-200 bg-white p-6">
+                      <h4 className="font-semibold text-navy text-sm mb-3">Partidos perjudicados</h4>
+                      <ul className="space-y-2 text-sm text-muted-text">
+                        <li><strong>Partidos medianos de ámbito nacional</strong> (Sumar, Vox) &mdash; necesitan más de 90.000 votos por escaño</li>
+                        <li><strong>Partidos pequeños nacionales</strong> (PACMA) &mdash; 228.000 votos en 2019 y cero escaños</li>
+                        <li>En general, todo partido cuyo <strong>voto está repartido</strong> por muchas provincias sin ser mayoritario en ninguna</li>
+                      </ul>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-serif text-lg text-navy mb-3">Implementación técnica</h3>
-                    <p className="text-sm">
-                      El algoritmo usa un método iterativo de ajuste de multiplicadores de filas y columnas. En Método Exacto es un modelo de ecuaciones con una familia de soluciones que verifica todas las condiciones.
-                    </p>
+                </div>
+
+                <div className="rounded-2xl bg-gray-50 border border-gray-200 p-6">
+                  <h4 className="font-semibold text-navy text-sm mb-3">El coste real de un escaño (23J 2023)</h4>
+                  <p className="text-sm text-muted-text mb-4">
+                    La diferencia en el &ldquo;precio&rdquo; de un escaño revela la desproporcionalidad del sistema:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div>
+                      <div className="text-2xl font-serif text-navy">~13.000</div>
+                      <div className="text-xs text-muted-text mt-1">votos/escaño en Ceuta</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-serif text-navy">~63.600</div>
+                      <div className="text-xs text-muted-text mt-1">votos/escaño del PSOE</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-serif text-navy">~97.200</div>
+                      <div className="text-xs text-muted-text mt-1">votos/escaño de Sumar</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-serif text-navy">~100.000</div>
+                      <div className="text-xs text-muted-text mt-1">votos/escaño en Madrid</div>
+                    </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            {/* ===== REFERENCIAS ===== */}
-            <section id="referencias">
-              <h3 className="font-serif text-xl text-navy mb-4">Referencias</h3>
-              <ul className="space-y-2 text-sm text-body-text">
-                <li className="flex items-start gap-2">
-                  <span className="text-muted-text">•</span>
-                  Ramírez González, V. et al. — Publicaciones sobre métodos electorales
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-muted-text">•</span>
-                  Pukelsheim, F. — &ldquo;Proportional Representation: Apportionment Methods and Their Applications&rdquo;
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-muted-text">•</span>
-                  Sistema biproporcional de Zúrich (implementación real desde 2006)
-                </li>
-              </ul>
+            {/* ===== TRES PASOS ===== */}
+            <section id="pasos">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">La solución</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-10 leading-tight">
+                Tres pasos hacia la proporcionalidad
+              </h2>
+              <StepExplanation />
+            </section>
+
+            {/* ===== SOBRE GIME ===== */}
+            <section id="sobre">
+              <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Sobre GIME</p>
+              <h2 className="font-serif text-3xl md:text-5xl text-navy mb-8 leading-tight">
+                Grupo de Investigación en Métodos Electorales
+              </h2>
+
+              <div className="space-y-10 text-body-text leading-relaxed">
+                <p className="max-w-2xl text-sm">
+                  El <strong>GIME</strong> (Grupo de Investigación en Métodos Electorales) es un equipo de investigación de la <strong>Universidad de Granada</strong> dedicado al estudio matemático de los sistemas de reparto electoral. Durante décadas, el grupo ha desarrollado y publicado propuestas para mejorar la proporcionalidad del sistema electoral español, combinando rigor académico con aplicabilidad práctica.
+                </p>
+
+                {/* Investigador principal */}
+                <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-8 items-start">
+                  <div className="w-[200px] h-[200px] rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0 mx-auto md:mx-0">
+                    <img
+                      src="/victoriano-ramirez.jpg"
+                      alt="Victoriano Ramírez González"
+                      className="w-full h-full object-cover scale-[1.38] origin-[50%_2%]"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-serif text-xl text-navy mb-2">Victoriano Ramírez González</h3>
+                    <p className="text-xs text-muted-text uppercase tracking-wider mb-3">Investigador principal · Profesor emérito</p>
+                    <div className="space-y-3 text-sm">
+                      <p>
+                        Catedrático de Matemática Aplicada y actualmente <strong>profesor emérito</strong> de la Universidad de Granada. Ha dedicado gran parte de su carrera académica al estudio de los métodos de reparto proporcional y sus aplicaciones a los sistemas electorales.
+                      </p>
+                      <p>
+                        Sus investigaciones han dado lugar a numerosas publicaciones científicas y propuestas concretas de reforma electoral presentadas ante instituciones españolas. Es el autor principal del método biproporcional adaptado al sistema de circunscripciones español que se presenta en este simulador.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Referencias */}
+                <div className="pt-4">
+                  <h3 className="font-serif text-xl text-navy mb-4">Referencias</h3>
+                  <ul className="space-y-2 text-sm text-body-text">
+                    <li className="flex items-start gap-2">
+                      <span className="text-muted-text">•</span>
+                      Ramírez González, V. et al. — Publicaciones sobre métodos electorales
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-muted-text">•</span>
+                      Pukelsheim, F. — &ldquo;Proportional Representation: Apportionment Methods and Their Applications&rdquo;
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-muted-text">•</span>
+                      Sistema biproporcional de Zúrich (implementación real desde 2006)
+                    </li>
+                  </ul>
+                </div>
+              </div>
             </section>
           </div>
         )}
@@ -305,7 +348,7 @@ export default function Home() {
             Simulador educativo basado en las ecuaciones de Victoriano Ramírez González, Universidad de Granada.
           </p>
           <div className="flex items-center justify-between">
-            <h2 className="font-serif text-xl text-white">Método GIME</h2>
+            <h2 className="font-serif text-xl text-white">Método Biproporcional</h2>
             <div className="flex gap-6 text-xs text-white/30">
               <span>GitHub</span>
               <span>Publicaciones</span>

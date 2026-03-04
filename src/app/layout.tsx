@@ -16,8 +16,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Método GIME - Sistema Electoral Biproporcional",
-  description: "Simulador interactivo del Método GIME para el reparto proporcional de escaños en sistemas electorales",
+  title: "GIME - Simulador Electoral Biproporcional",
+  description: "Simulador interactivo del Método Biproporcional para el reparto proporcional de escaños en sistemas electorales",
 };
 
 export default function RootLayout({
