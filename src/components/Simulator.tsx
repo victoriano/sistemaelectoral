@@ -7,7 +7,8 @@ import {
   gallagherIndex,
   compareAllocations,
   calculateWastedVotesCirc,
-  calculateWastedVotesBiprop
+  calculateWastedVotesBiprop,
+  calculateWastedVotesDetail
 } from "@/lib/electoral-methods";
 import {
   parties as parties2023,
@@ -147,17 +148,29 @@ export default function Simulator() {
     [adjustedCircumscriptions, dHondtResult]
   );
 
-  // Biprop: circumscription-level waste, but only for parties without national seats
-  // Parties that pass the threshold anywhere participate nationally, even if they
-  // do not win a seat in a specific circunscription.
   const wastedBiprop = useMemo(() => {
     const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
     return calculateWastedVotesBiprop(
       adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
-      stage2?.circumscriptionAllocations || [],
-      threshold / 100
+      stage2?.circumscriptionAllocations || []
     );
-  }, [adjustedCircumscriptions, gimeResults, threshold]);
+  }, [adjustedCircumscriptions, gimeResults]);
+
+  const wastedDHondtDetail = useMemo(() =>
+    calculateWastedVotesDetail(
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      dHondtResult.results
+    ),
+    [adjustedCircumscriptions, dHondtResult]
+  );
+
+  const wastedBipropDetail = useMemo(() => {
+    const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
+    return calculateWastedVotesDetail(
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      stage2?.circumscriptionAllocations || []
+    );
+  }, [adjustedCircumscriptions, gimeResults]);
 
   const gallagherDHondt = gallagherIndex(nationalVotes, dHondtResult.national);
   const gallagherGIME = gallagherIndex(nationalVotes, gimeNational);
@@ -226,6 +239,47 @@ export default function Simulator() {
     izquierdasNacionalistas: "Gob. Frankenstein",
     granCoalicion: "Gran Coalición",
   };
+
+  const formatCompactVotes = (votes: number) => {
+    if (votes >= 1_000_000) return `${(votes / 1_000_000).toFixed(1)}M`;
+    if (votes >= 1_000) return `${(votes / 1_000).toFixed(1)}k`;
+    return votes.toString();
+  };
+
+  const buildWastedEntries = (
+    totals: { [party: string]: number },
+    detail: { [party: string]: { province: string; votes: number }[] },
+    comparisonTotals?: { [party: string]: number }
+  ) =>
+    Object.entries(totals)
+      .filter(([_, votes]) => votes > 10_000)
+      .sort((a, b) => b[1] - a[1])
+      .map(([party, votes]) => {
+        const provinces = (detail[party] || []).slice().sort((a, b) => b.votes - a.votes);
+        const comparisonVotes = comparisonTotals?.[party] || 0;
+        const reduction = votes > 0 ? (votes - comparisonVotes) / votes : 0;
+
+        return {
+          party,
+          votes,
+          provinces,
+          rescued:
+            comparisonTotals &&
+            comparisonVotes < votes &&
+            (comparisonVotes === 0 || reduction >= 0.2)
+        };
+      });
+
+  const wastedDHondtEntries = buildWastedEntries(
+    wastedDHondt.byParty,
+    wastedDHondtDetail,
+    wastedBiprop.byParty
+  );
+
+  const wastedBipropEntries = buildWastedEntries(
+    wastedBiprop.byParty,
+    wastedBipropDetail
+  );
 
   return (
     <div className="space-y-16">
@@ -544,7 +598,7 @@ export default function Simulator() {
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos perdidos</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos en restos</h3>
         <p className="text-sm text-muted-text">
-          Votos que no contribuyeron a elegir ningún representante. En D&apos;Hondt, se cuentan por circunscripción. En el Biproporcional, solo se consideran perdidos los votos de partidos que no superan el umbral en ninguna circunscripción.
+          Votos de partidos que no obtuvieron escaño en una circunscripción. En D&apos;Hondt se calcula por circunscripción. En el Biproporcional, gracias al reparto nacional, los partidos obtienen escaños en más circunscripciones, reduciendo los votos sin representación.
         </p>
 
         {(() => {
@@ -581,7 +635,7 @@ export default function Simulator() {
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos que no superan el umbral en ninguna circunscripción</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño usando las asignaciones biproporcionales</div>
                 </div>
                 <div className={`rounded-2xl p-5 text-center text-white ${
                   bipropBetter ? "bg-emerald-500" : "bg-amber-500"
@@ -607,41 +661,59 @@ export default function Simulator() {
           );
         })()}
 
-        {/* Per-party wasted votes breakdown */}
         <details className="group">
           <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
             Detalle por partido (D&apos;Hondt)
             <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
           </summary>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {Object.entries(wastedDHondt.byParty)
-              .sort((a, b) => b[1] - a[1])
-              .filter(([_, votes]) => votes > 10000)
-              .map(([party, votes]) => {
-                const bipropVotes = wastedBiprop.byParty[party] || 0;
-                const rescued = bipropVotes === 0 && votes > 0;
-                return (
-                  <span
-                    key={party}
-                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${
-                      rescued ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-700"
-                    }`}
-                  >
-                    <span className="w-2 h-2 rounded-full" style={{ backgroundColor: parties[party]?.color || "#888" }} />
-                    {party}
-                    <span className="font-mono">{(votes / 1000).toFixed(0)}k</span>
-                    {rescued && (
-                      <span className="text-[10px] font-semibold">rescatados</span>
-                    )}
+          <div className="mt-3 space-y-2">
+            {wastedDHondtEntries.map(({ party, votes, provinces, rescued }) => (
+              <details key={party} className="rounded-2xl bg-gray-50 px-4 py-3">
+                <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
+                  <span className="flex items-center gap-2">
+                    <span className="text-muted-text text-xs">▶</span>
+                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
+                    <span>{party}</span>
+                    <span className="text-xs text-muted-text">{formatCompactVotes(votes)} votos sin representación</span>
                   </span>
-                );
-              })}
+                  {rescued && (
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                      rescatados por biprop
+                    </span>
+                  )}
+                </summary>
+                <div className="mt-2 text-xs text-muted-text">
+                  {provinces.map(({ province, votes: provinceVotes }) => `${province}: ${formatCompactVotes(provinceVotes)}`).join(" | ")}
+                </div>
+              </details>
+            ))}
+          </div>
+        </details>
+
+        <details className="group">
+          <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
+            Detalle por partido (Biproporcional)
+            <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
+          </summary>
+          <div className="mt-3 space-y-2">
+            {wastedBipropEntries.map(({ party, votes, provinces }) => (
+              <details key={party} className="rounded-2xl bg-gray-50 px-4 py-3">
+                <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
+                  <span className="text-muted-text text-xs">▶</span>
+                  <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
+                  <span>{party}</span>
+                  <span className="text-xs text-muted-text">{formatCompactVotes(votes)} votos sin representación</span>
+                </summary>
+                <div className="mt-2 text-xs text-muted-text">
+                  {provinces.map(({ province, votes: provinceVotes }) => `${province}: ${formatCompactVotes(provinceVotes)}`).join(" | ")}
+                </div>
+              </details>
+            ))}
           </div>
         </details>
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
-          <strong>Metodología:</strong> D&apos;Hondt cuenta votos en circunscripciones donde el partido obtuvo 0 escaños.
-          El Biproporcional solo cuenta votos de partidos que no superaron el umbral del {threshold}% en ninguna circunscripción, ya que los demás entran en el reparto nacional aunque su apoyo esté concentrado territorialmente.
+          <strong>Metodología:</strong> En ambos sistemas se cuentan como votos sin representación los de partidos que obtienen 0 escaños en una circunscripción. La diferencia es que el Biproporcional usa la asignación biproporcional de la etapa 2, que suele repartir escaños en más provincias y reducir esos restos.
         </div>
       </section>
 

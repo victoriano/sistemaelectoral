@@ -380,32 +380,45 @@ export function calculateWastedVotesCirc(
 
 /**
  * Calcula los votos "en restos" para el método Biproporcional.
- * Usa la misma lógica por circunscripción, pero excluye partidos que sí
- * superaron el umbral en alguna circunscripción, ya que sus votos cuentan
- * para el reparto nacional aunque no obtengan escaño en esa provincia.
+ * Usa la misma lógica por circunscripción que D'Hondt, pero aplicada
+ * sobre las asignaciones biproporcionales de la etapa 2.
  */
 export function calculateWastedVotesBiprop(
   circumscriptions: CircumscriptionVotes[],
-  circumscriptionResults: CircumscriptionResult[],
-  threshold: number = 0.03
+  circumscriptionResults: CircumscriptionResult[]
 ): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
-  const wasted: { [party: string]: number } = {};
-  let totalVotesSum = 0;
-  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
+  return calculateWastedVotesCirc(circumscriptions, circumscriptionResults);
+}
+
+/**
+ * Devuelve el detalle de votos sin representación por partido y provincia.
+ * Cuenta solo circunscripciones donde el partido obtuvo 0 escaños.
+ */
+export function calculateWastedVotesDetail(
+  circumscriptions: CircumscriptionVotes[],
+  circumscriptionResults: CircumscriptionResult[]
+): { [party: string]: { province: string; votes: number }[] } {
+  const wastedDetail: { [party: string]: { province: string; votes: number }[] } = {};
 
   circumscriptions.forEach((circ, i) => {
     const result = circumscriptionResults[i];
     if (!result) return;
+
     Object.entries(circ.votes).forEach(([party, votes]) => {
-      totalVotesSum += votes;
-      if (votes > 0 && (result.allocation[party] || 0) === 0 && !qualifiedParties.has(party)) {
-        wasted[party] = (wasted[party] || 0) + votes;
+      if (votes > 0 && (result.allocation[party] || 0) === 0) {
+        if (!wastedDetail[party]) {
+          wastedDetail[party] = [];
+        }
+
+        wastedDetail[party].push({
+          province: circ.name,
+          votes
+        });
       }
     });
   });
 
-  const total = Object.values(wasted).reduce((a, b) => a + b, 0);
-  return { byParty: wasted, total, totalVotes: totalVotesSum };
+  return wastedDetail;
 }
 
 /**
