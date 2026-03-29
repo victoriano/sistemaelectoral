@@ -167,7 +167,7 @@ export default function Home() {
                     <li>Voto perdido en circunscripciones pequeñas</li>
                     <li>Desigualdad del valor del voto según provincia</li>
                     <li>Partidos pequeños y medianos nacionales infrarepresentados</li>
-                    <li>Prima en exceso a partidos regionalistas</li>
+                    <li>Sobrepremia el voto territorialmente concentrado frente al voto repartido</li>
                   </ul>
                 </div>
 
@@ -181,6 +181,7 @@ export default function Home() {
                     <li>Proporcionalidad perfecta a nivel nacional</li>
                     <li>Todos los votos cuentan igual</li>
                     <li>Mantiene circunscripciones territoriales</li>
+                    <li>Conserva la representación de quien supera el umbral en su territorio</li>
                     <li>Transparente y matemáticamente riguroso</li>
                   </ul>
                 </div>
@@ -196,7 +197,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-red font-bold mt-0.5">?</span>
-                    <span>Si estos partidos nacionales tuvieran más peso, ¿representaría la cámara mejor los intereses del conjunto del país, en lugar de una donde los partidos nacionalistas regionalistas están sobrerrepresentados y condicionan la gobernabilidad?</span>
+                    <span>Si los partidos de ámbito nacional tuvieran una representación más ajustada a sus votos, ¿se reduciría la prima actual del voto concentrado sin borrar la representación legítima de los partidos regionales?</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-red font-bold mt-0.5">?</span>

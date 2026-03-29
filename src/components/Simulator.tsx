@@ -148,15 +148,16 @@ export default function Simulator() {
   );
 
   // Biprop: circumscription-level waste, but only for parties without national seats
-  // (parties with national seats have their votes count nationally in biprop)
+  // Parties that pass the threshold anywhere participate nationally, even if they
+  // do not win a seat in a specific circunscription.
   const wastedBiprop = useMemo(() => {
     const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
     return calculateWastedVotesBiprop(
       adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
       stage2?.circumscriptionAllocations || [],
-      gimeNational
+      threshold / 100
     );
-  }, [adjustedCircumscriptions, gimeResults, gimeNational]);
+  }, [adjustedCircumscriptions, gimeResults, threshold]);
 
   const gallagherDHondt = gallagherIndex(nationalVotes, dHondtResult.national);
   const gallagherGIME = gallagherIndex(nationalVotes, gimeNational);
@@ -371,7 +372,7 @@ export default function Simulator() {
           <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Parámetros del método</p>
           <h3 className="font-serif text-2xl md:text-3xl text-navy mb-2">Configuración Biproporcional</h3>
           <p className="text-sm text-muted-text max-w-lg">
-            Estos dos parámetros controlan cómo se aplica el Método Biproporcional. El umbral electoral filtra a los partidos sin representación mínima, y la bonificación premia al partido más votado para facilitar la formación de gobierno.
+            Estos dos parámetros controlan cómo se aplica el Método Biproporcional. El umbral electoral se comprueba en cada circunscripción y permite entrar al reparto nacional a quien lo supere al menos una vez; la bonificación premia al partido más votado para facilitar la formación de gobierno.
           </p>
         </div>
 
@@ -543,7 +544,7 @@ export default function Simulator() {
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos perdidos</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos en restos</h3>
         <p className="text-sm text-muted-text">
-          Votos que no contribuyeron a elegir ningún representante. En D&apos;Hondt, se cuentan por circunscripción (votos de partidos que no obtuvieron escaño en esa provincia). En el Biproporcional, solo se pierden los votos de partidos sin representación nacional.
+          Votos que no contribuyeron a elegir ningún representante. En D&apos;Hondt, se cuentan por circunscripción. En el Biproporcional, solo se consideran perdidos los votos de partidos que no superan el umbral en ninguna circunscripción.
         </p>
 
         {(() => {
@@ -580,7 +581,7 @@ export default function Simulator() {
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos bajo umbral nacional</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos que no superan el umbral en ninguna circunscripción</div>
                 </div>
                 <div className={`rounded-2xl p-5 text-center text-white ${
                   bipropBetter ? "bg-emerald-500" : "bg-amber-500"
@@ -597,20 +598,11 @@ export default function Simulator() {
                   <div className="text-[10px] text-white/60 mt-1">
                     {bipropBetter
                       ? "Reducción de votos perdidos"
-                      : "El umbral nacional afecta a partidos regionalistas"
+                      : "Más voto queda fuera del reparto"
                     }
                   </div>
                 </div>
               </div>
-
-              {!bipropBetter && (
-                <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-body-text">
-                  <strong>¿Por qué el Biproporcional pierde más votos?</strong> Con un umbral del {threshold}% aplicado a nivel nacional,
-                  los partidos regionalistas (ERC, Junts, PNV, Bildu...) quedan por debajo y pierden toda su representación.
-                  En D&apos;Hondt, el mismo umbral se aplica por circunscripción, donde estos partidos sí superan el {threshold}%.
-                  <strong> Prueba a bajar el umbral electoral</strong> para ver cómo cambia esta cifra.
-                </div>
-              )}
             </>
           );
         })()}
@@ -649,7 +641,7 @@ export default function Simulator() {
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
           <strong>Metodología:</strong> D&apos;Hondt cuenta votos en circunscripciones donde el partido obtuvo 0 escaños.
-          El Biproporcional solo cuenta votos de partidos que no superaron el umbral nacional, ya que los demás votos contribuyen al reparto nacional independientemente de la circunscripción.
+          El Biproporcional solo cuenta votos de partidos que no superaron el umbral del {threshold}% en ninguna circunscripción, ya que los demás entran en el reparto nacional aunque su apoyo esté concentrado territorialmente.
         </div>
       </section>
 

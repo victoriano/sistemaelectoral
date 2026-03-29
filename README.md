@@ -4,6 +4,23 @@ Simulador educativo del método biproporcional GIME (Grupo de Investigación en 
 
 Desarrollado por Victoriano Ramírez González, Universidad de Granada.
 
+## Methodology / Sources
+
+El simulador toma como referencia la propuesta GIME de **Victoriano Ramírez González (Universidad de Granada)** para aplicar un reparto biproporcional al Congreso de los Diputados.
+
+Fuentes principales:
+
+- Blog: https://1voto1asiento.blogspot.com/2010/05/el-sistema-biproporcional-segun-el.html
+- Dialnet (autor): https://dialnet.unirioja.es/servlet/autor?codigo=161869
+- Artículo en Extoikos: https://www.extoikos.es/n6/pdf/5.pdf
+
+Criterio de umbral implementado:
+
+- El umbral electoral se aplica **por circunscripción**, igual que en el sistema español vigente.
+- Un partido que supere ese umbral en **al menos una circunscripción** participa en el reparto proporcional nacional de escaños.
+- El ajuste biproporcional posterior distribuye esos escaños respetando a la vez los totales por partido y por circunscripción.
+- Los partidos que no superan el umbral en ninguna circunscripción quedan fuera del reparto nacional.
+
 ## Enlaces
 
 - **Web:** https://sistemaelectoral.victoriano.me / https://gime.victoriano.me

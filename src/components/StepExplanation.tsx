@@ -21,11 +21,12 @@ const steps: Step[] = [
     number: 1,
     title: "Proporcionalidad Nacional",
     shortTitle: "Reparto nacional",
-    shortDesc: "Se asignan los 350 escaños a cada partido en proporción a sus votos totales en todo el país.",
-    description: "Los votos se suman y reparten proporcionalmente usando D'Hondt",
+    shortDesc: "Participan en el reparto nacional los partidos que superan el umbral en al menos una circunscripción.",
+    description: "Los votos se suman y se reparten nacionalmente entre las candidaturas que han superado el umbral territorial",
     details: [
       "Se suman todos los votos de cada partido a nivel nacional",
-      "Se aplica el método D'Hondt para asignar los 350 escaños",
+      "El umbral electoral se comprueba en cada circunscripción, como en el sistema actual",
+      "Cualquier partido que supere ese umbral en al menos una circunscripción entra en el reparto nacional de los 350 escaños",
       "Cada partido sabe cuántos escaños le corresponden en total",
       "Ventaja: perfecta proporcionalidad nacional"
     ],

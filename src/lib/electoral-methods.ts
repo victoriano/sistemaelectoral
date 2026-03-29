@@ -25,6 +25,8 @@ export interface GIMEStageResult {
   iterations?: number;
 }
 
+type CircumscriptionVotes = { name: string; seats: number; votes: VoteData };
+
 // ==========================================
 // MÉTODO D'HONDT TRADICIONAL
 // ==========================================
@@ -78,7 +80,7 @@ export function dHondt(
  * D'Hondt aplicado circunscripción por circunscripción (sistema actual español)
  */
 export function dHondtByCircumscription(
-  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptions: CircumscriptionVotes[],
   threshold: number = 0.03
 ): { results: CircumscriptionResult[]; national: { [party: string]: number } } {
   const results: CircumscriptionResult[] = [];
@@ -102,6 +104,30 @@ export function dHondtByCircumscription(
   return { results, national };
 }
 
+/**
+ * Determina qué partidos superan el umbral en al menos una circunscripción.
+ * Es la condición de entrada al reparto nacional del método GIME.
+ */
+export function getQualifiedPartiesByCircumscriptionThreshold(
+  circumscriptions: CircumscriptionVotes[],
+  threshold: number = 0.03
+): Set<string> {
+  const qualifiedParties = new Set<string>();
+
+  for (const circ of circumscriptions) {
+    const totalVotes = Object.values(circ.votes).reduce((a, b) => a + b, 0);
+    if (totalVotes === 0) continue;
+
+    for (const [party, votes] of Object.entries(circ.votes)) {
+      if (votes / totalVotes >= threshold) {
+        qualifiedParties.add(party);
+      }
+    }
+  }
+
+  return qualifiedParties;
+}
+
 // ==========================================
 // MÉTODO BIPROPORCIONAL (GIME)
 // ==========================================
@@ -109,18 +135,28 @@ export function dHondtByCircumscription(
 /**
  * ETAPA 1: Reparto proporcional nacional
  * Calcula los escaños que corresponden a cada partido a nivel nacional
- * usando D'Hondt sobre el total de votos
+ * usando D'Hondt sobre el total de votos, pero solo entre partidos que
+ * hayan superado el umbral en al menos una circunscripción
  */
 export function gimeStage1(
+  circumscriptions: CircumscriptionVotes[],
   nationalVotes: VoteData,
   totalSeats: number,
   threshold: number = 0.03
 ): GIMEStageResult {
-  const { allocation } = dHondt(nationalVotes, totalSeats, threshold);
+  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
+  const eligibleNationalVotes = Object.fromEntries(
+    Object.entries(nationalVotes).filter(([party]) => qualifiedParties.has(party))
+  );
+  const { allocation: eligibleAllocation } = dHondt(eligibleNationalVotes, totalSeats, 0);
+  const allocation = Object.keys(nationalVotes).reduce((result, party) => {
+    result[party] = eligibleAllocation[party] || 0;
+    return result;
+  }, {} as { [party: string]: number });
   
   return {
     stage: 1,
-    description: "Reparto proporcional nacional: escaños asignados proporcionalmente a votos nacionales usando D'Hondt",
+    description: "Reparto proporcional nacional entre partidos que superan el umbral en al menos una circunscripción",
     nationalAllocation: allocation
   };
 }
@@ -132,7 +168,7 @@ export function gimeStage1(
  * los totales por circunscripción
  */
 export function gimeStage2(
-  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptions: CircumscriptionVotes[],
   nationalAllocation: { [party: string]: number },
   maxIterations: number = 100
 ): GIMEStageResult {
@@ -261,7 +297,7 @@ export function gimeStage3(
  * Ejecuta el método biproporcional completo
  */
 export function runGIME(
-  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptions: CircumscriptionVotes[],
   totalSeats: number,
   governabilityBonus: number = 0,
   threshold: number = 0.03
@@ -275,7 +311,7 @@ export function runGIME(
   }
   
   // Etapa 1
-  const stage1 = gimeStage1(nationalVotes, totalSeats, threshold);
+  const stage1 = gimeStage1(circumscriptions, nationalVotes, totalSeats, threshold);
   
   // Etapa 2
   const stage2 = gimeStage2(circumscriptions, stage1.nationalAllocation);
@@ -321,7 +357,7 @@ export function gallagherIndex(
  * Estos son los votos que literalmente no eligieron a nadie.
  */
 export function calculateWastedVotesCirc(
-  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptions: CircumscriptionVotes[],
   circumscriptionResults: CircumscriptionResult[]
 ): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
   const wasted: { [party: string]: number } = {};
@@ -344,24 +380,25 @@ export function calculateWastedVotesCirc(
 
 /**
  * Calcula los votos "en restos" para el método Biproporcional.
- * Usa la misma lógica por circunscripción, pero excluye partidos que tienen
- * escaños a nivel nacional, ya que en el sistema biproporcional sus votos
- * cuentan nacionalmente aunque no obtengan escaño en esa circunscripción.
+ * Usa la misma lógica por circunscripción, pero excluye partidos que sí
+ * superaron el umbral en alguna circunscripción, ya que sus votos cuentan
+ * para el reparto nacional aunque no obtengan escaño en esa provincia.
  */
 export function calculateWastedVotesBiprop(
-  circumscriptions: { name: string; seats: number; votes: VoteData }[],
+  circumscriptions: CircumscriptionVotes[],
   circumscriptionResults: CircumscriptionResult[],
-  nationalSeats: { [party: string]: number }
+  threshold: number = 0.03
 ): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
   const wasted: { [party: string]: number } = {};
   let totalVotesSum = 0;
+  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
 
   circumscriptions.forEach((circ, i) => {
     const result = circumscriptionResults[i];
     if (!result) return;
     Object.entries(circ.votes).forEach(([party, votes]) => {
       totalVotesSum += votes;
-      if (votes > 0 && (result.allocation[party] || 0) === 0 && (nationalSeats[party] || 0) === 0) {
+      if (votes > 0 && (result.allocation[party] || 0) === 0 && !qualifiedParties.has(party)) {
         wasted[party] = (wasted[party] || 0) + votes;
       }
     });
