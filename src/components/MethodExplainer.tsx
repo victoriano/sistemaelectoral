@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from "react";
 
-type PartyId = "A" | "B" | "C";
+type PartyId = "A" | "B" | "C" | "D";
 type ProvincePartyId = "azul" | "rojo" | "verde" | "naranja";
 
 interface PartyConfig {
@@ -50,27 +50,35 @@ interface Stage {
 const dHondtParties: PartyConfig[] = [
   {
     id: "A",
-    name: "Partido A",
-    color: "text-sky-700",
-    bg: "bg-sky-600",
-    soft: "bg-sky-50",
-    border: "border-sky-200",
+    name: "PP",
+    color: "text-[#0056a3]",
+    bg: "bg-[#0056a3]",
+    soft: "bg-blue-50",
+    border: "border-blue-200",
   },
   {
     id: "B",
-    name: "Partido B",
-    color: "text-rose-700",
-    bg: "bg-rose-600",
-    soft: "bg-rose-50",
-    border: "border-rose-200",
+    name: "PSOE",
+    color: "text-[#e30613]",
+    bg: "bg-[#e30613]",
+    soft: "bg-red-50",
+    border: "border-red-200",
   },
   {
     id: "C",
-    name: "Partido C",
-    color: "text-emerald-700",
-    bg: "bg-emerald-600",
+    name: "VOX",
+    color: "text-[#63be21]",
+    bg: "bg-[#63be21]",
     soft: "bg-emerald-50",
     border: "border-emerald-200",
+  },
+  {
+    id: "D" as PartyId,
+    name: "SUMAR",
+    color: "text-[#e51c55]",
+    bg: "bg-[#e51c55]",
+    soft: "bg-pink-50",
+    border: "border-pink-200",
   },
 ];
 
@@ -219,7 +227,7 @@ function computeDhondt(votes: Record<PartyId, number>, seats: number) {
 
   const winners = ordered.slice(0, seats);
   const winnerMap = new Map<string, number>();
-  const seatCount = { A: 0, B: 0, C: 0 } as Record<PartyId, number>;
+  const seatCount = { A: 0, B: 0, C: 0, D: 0 } as Record<PartyId, number>;
 
   winners.forEach((winner, index) => {
     winnerMap.set(`${winner.partyId}-${winner.divisor}`, index + 1);
@@ -264,14 +272,15 @@ function computeProvinceSeats(votes: Record<ProvincePartyId, number>, seats: num
 
 export default function MethodExplainer() {
   const [votes, setVotes] = useState<Record<PartyId, number>>({
-    A: 100000,
-    B: 80000,
-    C: 30000,
+    A: 147623,
+    B: 131567,
+    C: 64312,
+    D: 46478,
   });
-  const [activeSeat, setActiveSeat] = useState<number>(5);
+  const [activeSeat, setActiveSeat] = useState<number>(7);
   const [activeStage, setActiveStage] = useState<number>(2);
 
-  const seats = 5;
+  const seats = 7;
   const dHondt = useMemo(() => computeDhondt(votes, seats), [votes]);
 
   const provinceResults = useMemo(
@@ -320,7 +329,7 @@ export default function MethodExplainer() {
             <div className="max-w-2xl">
               <h3 className="font-serif text-2xl md:text-3xl text-navy">Cómo funciona D&apos;Hondt</h3>
               <p className="text-sm text-muted-text mt-2">
-                Imagina una provincia de 5 escaños. Cada asiento va al cociente más alto de la tabla.
+                Ejemplo real: <strong>Granada, elecciones 23J 2023</strong> (7 escaños). Cada escaño va al cociente más alto de la tabla.
               </p>
             </div>
             <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3 text-sm text-muted-text">
@@ -339,7 +348,7 @@ export default function MethodExplainer() {
                       <span className={`h-3 w-3 rounded-full ${party.bg}`} />
                       <div>
                         <p className={`text-sm font-semibold ${party.color}`}>{party.name}</p>
-                        <p className="text-xs text-muted-text">Ajusta sus votos</p>
+                        <p className="text-xs text-muted-text">Granada 23J</p>
                       </div>
                     </div>
                     <input
@@ -490,8 +499,8 @@ export default function MethodExplainer() {
               </div>
 
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-5 py-4 text-sm text-rose-900">
-                El ejemplo base deja un resultado clásico: A consigue 3 escaños, B consigue 2 y C consigue 0.
-                <strong> Los 30.000 votantes de C se quedan sin representación.</strong> En D&apos;Hondt, esos votos simplemente se pierden.
+                En Granada 23J: PP consigue 3 escaños, PSOE 3 y VOX 1. <strong>Los {formatVotes(votes.D)} votantes de SUMAR se quedan sin representación.</strong>
+                {" "}En D&apos;Hondt, esos votos simplemente se pierden. Prueba a mover los deslizadores para ver cuántos votos necesitaría SUMAR para conseguir escaño.
               </div>
             </div>
           </div>
