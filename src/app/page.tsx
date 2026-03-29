@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import StepExplanation from "@/components/StepExplanation";
+import MethodExplainer from "@/components/MethodExplainer";
 import Simulator from "@/components/Simulator";
 import SpainMap from "@/components/SpainMap";
 import { circunscripciones, realResults2023, parties } from "@/data/elections2023";
@@ -295,9 +295,9 @@ export default function Home() {
             <section id="pasos">
               <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">La solución</p>
               <h2 className="font-serif text-3xl md:text-5xl text-navy mb-10 leading-tight">
-                Tres pasos hacia la proporcionalidad
+                Cómo funciona
               </h2>
-              <StepExplanation />
+              <MethodExplainer />
             </section>
 
             {/* ===== SOBRE GIME ===== */}
