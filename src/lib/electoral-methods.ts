@@ -162,76 +162,94 @@ export function gimeStage1(
 }
 
 /**
- * ETAPA 2: Reparto biproporcional
- * Distribuye los escaños de cada partido entre las circunscripciones
- * manteniendo tanto los totales por partido (de Etapa 1) como 
- * los totales por circunscripción
+ * Aplica D'Hondt para repartir `seats` escaños entre candidatos con votos ponderados.
+ * Devuelve array de escaños asignados en el mismo orden que weightedVotes.
+ */
+function apportionDHondt(weightedVotes: number[], seats: number): number[] {
+  const n = weightedVotes.length;
+  const result = new Array(n).fill(0);
+  
+  for (let s = 0; s < seats; s++) {
+    let maxQ = -1;
+    let winner = -1;
+    for (let i = 0; i < n; i++) {
+      if (weightedVotes[i] <= 0) continue;
+      const q = weightedVotes[i] / (result[i] + 1);
+      if (q > maxQ) {
+        maxQ = q;
+        winner = i;
+      }
+    }
+    if (winner >= 0) result[winner]++;
+  }
+  
+  return result;
+}
+
+/**
+ * ETAPA 2: Reparto biproporcional (Alternating Scaling con D'Hondt)
+ * 
+ * Implementa el algoritmo de escalado alternante:
+ * - Para cada circunscripción, reparte sus escaños entre partidos usando
+ *   D'Hondt con votos ponderados por multiplicadores de partido.
+ * - Ajusta los multiplicadores de partido para que los totales nacionales
+ *   por partido coincidan con los de la Etapa 1.
+ * - Repite hasta convergencia.
+ * 
+ * Los totales por circunscripción se garantizan estructuralmente (cada circ
+ * reparte exactamente sus escaños). Los multiplicadores de partido se
+ * ajustan iterativamente para satisfacer los totales por partido.
  */
 export function gimeStage2(
   circumscriptions: CircumscriptionVotes[],
   nationalAllocation: { [party: string]: number },
-  maxIterations: number = 100
+  maxIterations: number = 500
 ): GIMEStageResult {
   const parties = Object.keys(nationalAllocation).filter(p => nationalAllocation[p] > 0);
-  const n = circumscriptions.length;
+  const numCircs = circumscriptions.length;
+  const numParties = parties.length;
   
-  // Inicializar matriz de asignación
-  const allocation: number[][] = circumscriptions.map(c => 
-    parties.map(() => 0)
+  // Vote matrix: votes[circ][partyIdx]
+  const votes: number[][] = circumscriptions.map(circ =>
+    parties.map(p => circ.votes[p] || 0)
   );
   
-  // Multiplicadores para el algoritmo iterativo
-  let partyMultipliers = parties.map(() => 1);
-  let circMultipliers = circumscriptions.map(() => 1);
+  const circTargets = circumscriptions.map(c => c.seats);
+  const partyTargets = parties.map(p => nationalAllocation[p]);
+  
+  // Party multipliers (the key variables we optimize)
+  const partyMult = new Array(numParties).fill(1);
+  
+  let allocation: number[][] = circumscriptions.map(() => new Array(numParties).fill(0));
   
   let iterations = 0;
   let converged = false;
   
   while (!converged && iterations < maxIterations) {
-    converged = true;
     iterations++;
+    converged = true;
     
-    // Calcular escaños ideales (proporcionales)
-    for (let i = 0; i < n; i++) {
-      const circ = circumscriptions[i];
-      const totalCircVotes = Object.values(circ.votes).reduce((a, b) => a + b, 0);
-      
-      for (let j = 0; j < parties.length; j++) {
-        const party = parties[j];
-        const votes = circ.votes[party] || 0;
-        
-        if (votes === 0) {
-          allocation[i][j] = 0;
-          continue;
+    // For each circumscription, distribute its seats using D'Hondt
+    // with weighted votes = votes × partyMultiplier
+    for (let i = 0; i < numCircs; i++) {
+      const weightedVotes = parties.map((_, j) => votes[i][j] * partyMult[j]);
+      allocation[i] = apportionDHondt(weightedVotes, circTargets[i]);
+    }
+    
+    // Check party totals and adjust multipliers
+    for (let j = 0; j < numParties; j++) {
+      const currentTotal = allocation.reduce((sum, row) => sum + row[j], 0);
+      const target = partyTargets[j];
+      if (currentTotal !== target) {
+        converged = false;
+        if (currentTotal > 0) {
+          // Damped adjustment to help convergence
+          const ratio = target / currentTotal;
+          partyMult[j] *= 0.5 + 0.5 * ratio;
+        } else if (target > 0) {
+          // Party has no seats but should — boost multiplier
+          partyMult[j] *= 2;
         }
-        
-        // Fórmula biproporcional con multiplicadores
-        const idealSeats = (votes / totalCircVotes) * circ.seats * 
-                          partyMultipliers[j] * circMultipliers[i];
-        allocation[i][j] = Math.round(idealSeats);
-      }
-    }
-    
-    // Ajustar multiplicadores de partidos para cumplir totales nacionales
-    for (let j = 0; j < parties.length; j++) {
-      const party = parties[j];
-      const targetSeats = nationalAllocation[party];
-      const currentSeats = allocation.reduce((sum, row) => sum + row[j], 0);
-      
-      if (currentSeats !== targetSeats && currentSeats > 0) {
-        partyMultipliers[j] *= targetSeats / currentSeats;
-        converged = false;
-      }
-    }
-    
-    // Ajustar multiplicadores de circunscripciones
-    for (let i = 0; i < n; i++) {
-      const targetSeats = circumscriptions[i].seats;
-      const currentSeats = allocation[i].reduce((a, b) => a + b, 0);
-      
-      if (currentSeats !== targetSeats && currentSeats > 0) {
-        circMultipliers[i] *= targetSeats / currentSeats;
-        converged = false;
       }
     }
   }
@@ -250,7 +268,7 @@ export function gimeStage2(
   
   return {
     stage: 2,
-    description: "Reparto biproporcional: distribución iterativa que satisface totales por partido Y por circunscripción",
+    description: "Reparto biproporcional: escalado alternante con D'Hondt que satisface totales por partido Y por circunscripción",
     nationalAllocation,
     circumscriptionAllocations,
     iterations
