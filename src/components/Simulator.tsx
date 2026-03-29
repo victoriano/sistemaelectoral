@@ -621,15 +621,39 @@ export default function Simulator() {
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos perdidos</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos en restos</h3>
         <p className="text-sm text-muted-text">
-          En D&apos;Hondt, los votos de partidos que no obtienen escaño en una circunscripción se pierden completamente.
-          En el Biproporcional, todos los votos de partidos cualificados (que superan el umbral en al menos una provincia)
-          cuentan para el reparto nacional. Solo se pierden los votos de partidos que no superan el umbral en ninguna parte.
+          Votos de partidos que no obtuvieron escaño en una circunscripción, calculados con la misma métrica para ambos sistemas.
+          En el Biproporcional, al repartir escaños nacionalmente, los partidos obtienen representación en más provincias,
+          reduciendo los votos sin representación. Además, en el Biproporcional estos votos no están &quot;perdidos&quot; del todo:
+          contribuyen al total nacional del partido aunque no haya representante local.
         </p>
 
         {(() => {
+          // Fair comparison: same metric for both (votes in provinces where party got 0 seats)
+          // For biprop, use circumscription allocations from stage 2
+          const bipropCircWasted = (() => {
+            const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
+            const circResults = stage2?.circumscriptionAllocations || [];
+            let total = 0;
+            let totalVotes = 0;
+            const byParty: { [party: string]: number } = {};
+            adjustedCircumscriptions.forEach((circ, i) => {
+              const result = circResults[i];
+              if (!result) return;
+              Object.entries(circ.votes).forEach(([party, votes]) => {
+                totalVotes += votes;
+                if (votes > 0 && (result.allocation[party] || 0) === 0) {
+                  total += votes;
+                  byParty[party] = (byParty[party] || 0) + votes;
+                }
+              });
+            });
+            return { total, totalVotes, byParty };
+          })();
+
           const improvement = wastedDHondt.total > 0
-            ? ((wastedDHondt.total - wastedBiprop.total) / wastedDHondt.total * 100)
+            ? ((wastedDHondt.total - bipropCircWasted.total) / wastedDHondt.total * 100)
             : 0;
+          const bipropBetter = bipropCircWasted.total <= wastedDHondt.total;
           return (
             <>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -646,52 +670,48 @@ export default function Simulator() {
                   </div>
                   <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño en su circunscripción</div>
                 </div>
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50/30 p-5 text-center">
+                <div className={`rounded-2xl border p-5 text-center ${
+                  bipropBetter ? "border-emerald-100 bg-emerald-50/30" : "border-amber-100 bg-amber-50/30"
+                }`}>
                   <div className="text-xs text-muted-text mb-1 uppercase tracking-wider">Biproporcional</div>
-                  <div className="text-3xl font-serif text-emerald-600">
-                    {wastedBiprop.total > 0
-                      ? `${(wastedBiprop.total / 1_000_000).toFixed(1)}M`
-                      : "~0"
-                    }
+                  <div className={`text-3xl font-serif ${bipropBetter ? "text-emerald-600" : "text-amber-600"}`}>
+                    {(bipropCircWasted.total / 1_000_000).toFixed(1)}M
                   </div>
                   <div className="text-[10px] text-muted-text mt-1">
-                    {wastedBiprop.totalVotes > 0
-                      ? `${(wastedBiprop.total / wastedBiprop.totalVotes * 100).toFixed(1)}% del total`
+                    {bipropCircWasted.totalVotes > 0
+                      ? `${(bipropCircWasted.total / bipropCircWasted.totalVotes * 100).toFixed(1)}% del total`
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">solo partidos sin umbral en ninguna provincia</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño en su circunscripción (biprop)</div>
                 </div>
-                <div className="rounded-2xl bg-emerald-500 p-5 text-center text-white">
-                  <div className="text-xs text-white/70 mb-1 uppercase tracking-wider">Mejora</div>
+                <div className={`rounded-2xl p-5 text-center text-white ${
+                  bipropBetter ? "bg-emerald-500" : "bg-amber-500"
+                }`}>
+                  <div className="text-xs text-white/70 mb-1 uppercase tracking-wider">
+                    {bipropBetter ? "Mejora" : "Trade-off"}
+                  </div>
                   <div className="text-3xl font-serif">
                     {wastedDHondt.total > 0
-                      ? `+${improvement.toFixed(0)}%`
+                      ? `${improvement > 0 ? "+" : ""}${improvement.toFixed(0)}%`
                       : "—"
                     }
                   </div>
                   <div className="text-[10px] text-white/60 mt-1">
-                    Reducción de votos verdaderamente perdidos
+                    {bipropBetter
+                      ? "Reducción de votos sin representación"
+                      : "Más votos sin representación local"
+                    }
                   </div>
                 </div>
               </div>
 
-              {/* Sin representación local — votos que contaron nacionalmente pero sin escaño local */}
-              {wastedBiprop.unrepresentedLocal.total > 0 && (
-                <div className="rounded-2xl border border-blue-100 bg-blue-50/30 p-5">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs text-muted-text uppercase tracking-wider">Sin representación local (Biprop)</div>
-                    <div className="text-lg font-serif text-step-blue">
-                      {(wastedBiprop.unrepresentedLocal.total / 1_000_000).toFixed(1)}M
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-text">
-                    Votos de partidos cualificados en provincias donde no obtuvieron escaño.
-                    Estos votos <strong>sí contaron</strong> para el reparto nacional del partido,
-                    pero el votante no tiene representante local de su partido en esa provincia.
-                  </p>
-                </div>
-              )}
+              {/* Nota explicativa sobre la diferencia conceptual */}
+              <div className="rounded-xl bg-blue-50/50 border border-blue-100 p-4 text-sm text-body-text">
+                <strong>Nota:</strong> En D&apos;Hondt, los votos sin escaño en una circunscripción están <em>verdaderamente perdidos</em>.
+                En el Biproporcional, estos votos sí contribuyen al reparto nacional del partido aunque no haya representante local:
+                el voto cuenta, pero el votante no tiene diputado de su partido en su provincia.
+              </div>
             </>
           );
         })()}
@@ -728,24 +748,34 @@ export default function Simulator() {
         {unrepLocalEntries.length > 0 && (
           <details className="group">
             <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
-              Detalle sin representación local (Biproporcional)
+              Detalle por partido (Biproporcional — sin escaño local)
               <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
             </summary>
             <div className="mt-3 space-y-2">
-              {unrepLocalEntries.map(({ party, votes, provinces }) => (
-                <details key={party} className="rounded-2xl bg-blue-50/50 px-4 py-3">
-                  <summary className="flex cursor-pointer items-center gap-2 text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
-                    <span className="text-muted-text text-xs">▶</span>
-                    <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
-                    <span>{party}</span>
-                    <span className="text-xs text-muted-text">{formatCompactVotes(votes)} sin representante local</span>
-                    <span className="text-[10px] text-step-blue">(voto contó nacionalmente)</span>
-                  </summary>
-                  <div className="mt-2 text-xs text-muted-text">
-                    {provinces.map(({ province, votes: provinceVotes }) => `${province}: ${formatCompactVotes(provinceVotes)}`).join(" | ")}
-                  </div>
-                </details>
-              ))}
+              {unrepLocalEntries.map(({ party, votes, provinces }) => {
+                const dhondtVotes = wastedDHondt.byParty[party] || 0;
+                const rescued = dhondtVotes > votes;
+                return (
+                  <details key={party} className="rounded-2xl bg-blue-50/50 px-4 py-3">
+                    <summary className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium text-navy [&::-webkit-details-marker]:hidden">
+                      <span className="flex items-center gap-2">
+                        <span className="text-muted-text text-xs">▶</span>
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
+                        <span>{party}</span>
+                        <span className="text-xs text-muted-text">{formatCompactVotes(votes)} sin escaño local</span>
+                      </span>
+                      {rescued && (
+                        <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+                          D&apos;Hondt: {formatCompactVotes(dhondtVotes)}
+                        </span>
+                      )}
+                    </summary>
+                    <div className="mt-2 text-xs text-muted-text">
+                      {provinces.map(({ province, votes: provinceVotes }) => `${province}: ${formatCompactVotes(provinceVotes)}`).join(" | ")}
+                    </div>
+                  </details>
+                );
+              })}
             </div>
           </details>
         )}
