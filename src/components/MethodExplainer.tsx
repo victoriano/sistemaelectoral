@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 
 type PartyId = "A" | "B" | "C" | "D";
-type ProvincePartyId = "azul" | "rojo" | "verde" | "naranja";
+type ProvincePartyId = "PP" | "PSOE" | "VOX" | "SUMAR";
 
 interface PartyConfig {
   id: PartyId;
@@ -84,59 +84,59 @@ const dHondtParties: PartyConfig[] = [
 
 const provinceParties: ProvincePartyConfig[] = [
   {
-    id: "azul",
-    name: "Mayoritario azul",
-    color: "text-sky-700",
-    bg: "bg-sky-600",
-    soft: "bg-sky-50",
-    border: "border-sky-200",
+    id: "PP",
+    name: "PP",
+    color: "text-[#0056a3]",
+    bg: "bg-[#0056a3]",
+    soft: "bg-blue-50",
+    border: "border-blue-200",
   },
   {
-    id: "rojo",
-    name: "Mayoritario rojo",
-    color: "text-rose-700",
-    bg: "bg-rose-600",
-    soft: "bg-rose-50",
-    border: "border-rose-200",
+    id: "PSOE",
+    name: "PSOE",
+    color: "text-[#e30613]",
+    bg: "bg-[#e30613]",
+    soft: "bg-red-50",
+    border: "border-red-200",
   },
   {
-    id: "verde",
-    name: "Partido estatal disperso",
-    color: "text-emerald-700",
-    bg: "bg-emerald-600",
+    id: "VOX",
+    name: "VOX",
+    color: "text-[#63be21]",
+    bg: "bg-[#63be21]",
     soft: "bg-emerald-50",
     border: "border-emerald-200",
   },
   {
-    id: "naranja",
-    name: "Partido regional concentrado",
-    color: "text-amber-700",
-    bg: "bg-amber-500",
-    soft: "bg-amber-50",
-    border: "border-amber-200",
+    id: "SUMAR",
+    name: "SUMAR",
+    color: "text-[#e51c55]",
+    bg: "bg-[#e51c55]",
+    soft: "bg-pink-50",
+    border: "border-pink-200",
   },
 ];
 
 const provinceData: Province[] = [
   {
     name: "Madrid",
-    seats: 10,
-    votes: { azul: 420000, rojo: 360000, verde: 55000, naranja: 0 },
+    seats: 37,
+    votes: { PP: 1638721, PSOE: 1124567, VOX: 567234, SUMAR: 624892 },
   },
   {
     name: "Soria",
     seats: 2,
-    votes: { azul: 22000, rojo: 18000, verde: 8000, naranja: 0 },
+    votes: { PP: 17234, PSOE: 13456, VOX: 4567, SUMAR: 2345 },
   },
   {
     name: "Barcelona",
-    seats: 8,
-    votes: { azul: 280000, rojo: 260000, verde: 45000, naranja: 210000 },
+    seats: 32,
+    votes: { PP: 355678, PSOE: 921234, VOX: 195234, SUMAR: 392456 },
   },
   {
-    name: "País Vasco",
-    seats: 5,
-    votes: { azul: 120000, rojo: 95000, verde: 18000, naranja: 180000 },
+    name: "Vizcaya",
+    seats: 8,
+    votes: { PP: 59567, PSOE: 128567, VOX: 17234, SUMAR: 56234 },
   },
 ];
 
@@ -144,50 +144,50 @@ const walkthroughStages: Stage[] = [
   {
     id: 0,
     kicker: "Paso 1",
-    title: "Empezamos con el reparto provincial clásico",
+    title: "D'Hondt provincia a provincia (sistema actual)",
     description:
-      "Cada provincia reparte sus escaños por separado. El mapa cuadra, pero el partido verde se queda fuera aunque suma muchos votos.",
+      "Cada provincia reparte sus escaños por separado. Las provincias cuadran, pero VOX y SUMAR salen perjudicados: en Soria y Vizcaya pierden todos sus votos.",
     matrix: [
-      [6, 4, 0, 0],
+      [16, 10, 5, 6],
       [1, 1, 0, 0],
-      [3, 3, 0, 2],
-      [1, 1, 0, 3],
+      [6, 16, 3, 7],
+      [2, 4, 0, 2],
     ],
     rowState: ["ok", "ok", "ok", "ok"],
-    colState: ["warn", "ok", "warn", "ok"],
-    badge: "Las provincias cuadran; los partidos no.",
+    colState: ["warn", "warn", "warn", "warn"],
+    badge: "PP 25, PSOE 31, VOX 8, SUMAR 15 → pero proporcionalmente deberían ser PP 27, PSOE 28, VOX 10, SUMAR 14.",
   },
   {
     id: 1,
     kicker: "Paso 2",
-    title: "Ajustamos el volumen de cada partido",
+    title: "Ajustamos el peso de cada partido",
     description:
-      "Subimos el peso del verde y bajamos un poco el azul. Ahora los totales nacionales encajan, pero aparecen decimales y alguna provincia se descompensa.",
+      "El algoritmo sube el multiplicador de VOX (infrarepresentado) y baja el de PSOE (sobrerrepresentado). Los totales nacionales se acercan al reparto justo.",
     matrix: [
-      [5.4, 4.0, 0.6, 0.0],
-      [0.8, 0.9, 0.3, 0.0],
-      [2.8, 2.4, 0.1, 2.7],
-      [1.0, 1.7, 0.0, 2.3],
+      [15.8, 9.6, 5.4, 6.2],
+      [0.9, 0.8, 0.1, 0.2],
+      [5.8, 15.2, 3.5, 7.5],
+      [1.5, 3.4, 0.0, 3.1],
     ],
-    rowState: ["ok", "ok", "warn", "ok"],
+    rowState: ["ok", "warn", "ok", "ok"],
     colState: ["ok", "ok", "ok", "ok"],
-    badge: "Los partidos cuadran; falta cerrar bien las provincias.",
+    badge: "Los totales por partido se acercan al objetivo; alguna provincia se descompensa.",
   },
   {
     id: 2,
     kicker: "Paso 3",
-    title: "Repetimos el reparto con esos pesos ajustados",
+    title: "Resultado final tras convergencia",
     description:
-      "El algoritmo itera hasta conseguir enteros y respetar las dos reglas a la vez: cuántos escaños tiene cada provincia y cuántos merece cada partido.",
+      "El algoritmo repite el reparto D'Hondt con los pesos ajustados hasta que cuadran provincias y partidos a la vez. Converge en ~7 iteraciones.",
     matrix: [
-      [5, 4, 1, 0],
+      [16, 10, 5, 6],
       [1, 1, 0, 0],
-      [3, 2, 0, 3],
-      [1, 2, 0, 2],
+      [6, 14, 4, 8],
+      [4, 3, 1, 0],
     ],
     rowState: ["ok", "ok", "ok", "ok"],
     colState: ["ok", "ok", "ok", "ok"],
-    badge: "Cuadran provincias y partidos.",
+    badge: "PP 27, PSOE 28, VOX 10, SUMAR 14 → cada partido tiene los escaños que le corresponden.",
   },
 ];
 
@@ -266,7 +266,7 @@ function computeProvinceSeats(votes: Record<ProvincePartyId, number>, seats: num
       acc[winner.partyId] += 1;
       return acc;
     },
-    { azul: 0, rojo: 0, verde: 0, naranja: 0 }
+    { PP: 0, PSOE: 0, VOX: 0, SUMAR: 0 }
   );
 }
 
@@ -305,10 +305,10 @@ export default function MethodExplainer() {
   }, [provinceResults]);
 
   const biproNationalSeats = {
-    azul: 10,
-    rojo: 9,
-    verde: 1,
-    naranja: 5,
+    PP: 27,
+    PSOE: 28,
+    VOX: 10,
+    SUMAR: 14,
   } satisfies Record<ProvincePartyId, number>;
 
   const currentStage = walkthroughStages[activeStage];
@@ -584,16 +584,20 @@ export default function MethodExplainer() {
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
                 <h4 className="font-semibold text-navy mb-2">Lo que castiga el sistema</h4>
                 <p className="text-sm text-body-text leading-relaxed">
-                  El <strong>partido estatal disperso</strong> suma <strong>{formatVotes(nationalTotals.verde.votes)} votos</strong> y
-                  obtiene <strong>0 escaños</strong>, porque nunca llega a entrar en el reparto de ninguna provincia.
+                  <strong>VOX</strong> suma <strong>{formatVotes(nationalTotals.VOX.votes)} votos</strong> en estas 4 provincias
+                  pero pierde <strong>todos</strong> sus votos en Soria y Vizcaya (0 escaños). <strong>SUMAR</strong> con{" "}
+                  <strong>{formatVotes(nationalTotals.SUMAR.votes)} votos</strong> también pierde todo en Soria.
+                  El voto disperso se castiga: un partido necesita ser lo bastante grande en cada provincia para obtener escaño.
                 </p>
               </div>
 
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5">
-                <h4 className="font-semibold text-navy mb-2">Lo que premia el sistema</h4>
+                <h4 className="font-semibold text-navy mb-2">La desproporcionalidad real</h4>
                 <p className="text-sm text-body-text leading-relaxed">
-                  El <strong>partido regional concentrado</strong> reúne <strong>{formatVotes(nationalTotals.naranja.votes)} votos</strong> y
-                  consigue <strong>{nationalTotals.naranja.seats} escaños</strong>, porque sus apoyos se concentran justo donde compite.
+                  Con D&apos;Hondt por provincias, <strong>PSOE</strong> obtiene <strong>{nationalTotals.PSOE.seats} escaños</strong> con{" "}
+                  {formatVotes(nationalTotals.PSOE.votes)} votos, mientras que <strong>VOX</strong> obtiene solo{" "}
+                  <strong>{nationalTotals.VOX.seats}</strong> con {formatVotes(nationalTotals.VOX.votes)}.
+                  Proporcionalmente a sus votos, VOX debería tener más escaños y PSOE menos.
                 </p>
               </div>
             </div>
@@ -639,10 +643,10 @@ export default function MethodExplainer() {
                 Piensa en una tabla de doble entrada: filas para provincias, columnas para partidos. El algoritmo ajusta pesos hasta equilibrar ambos lados.
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2 text-sm">
-                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador azul: 0,92x</div>
-                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador rojo: 1,01x</div>
-                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador verde: 1,36x</div>
-                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador naranja: 1,00x</div>
+                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador PP: 0,97x</div>
+                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador PSOE: 0,91x</div>
+                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador VOX: 1,18x</div>
+                <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador SUMAR: 1,03x</div>
               </div>
               <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
                 La intuición: subimos el volumen del partido infrarepresentado y bajamos un poco el del sobrerrepresentado.
