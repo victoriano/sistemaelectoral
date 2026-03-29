@@ -80,3 +80,11 @@ Ejemplo: `02202307_TOTA.zip` → Elecciones Generales julio 2023
 - Tailwind CSS + DaisyUI
 - Recharts
 - Vercel (deploy)
+
+## Deploy
+
+El repositorio está conectado a Vercel (cuenta personal de Victoriano) con **auto-deploy desde GitHub**.
+
+- **Push a `main`** → deploy automático a producción
+- **URLs:** https://sistemaelectoral.victoriano.me / https://gime.victoriano.me
+- **No se necesita `vercel` CLI ni tokens** — el deploy se dispara al hacer `git push`
