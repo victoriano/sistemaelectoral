@@ -370,9 +370,16 @@ export function gallagherIndex(
 }
 
 /**
- * Calcula los votos "en restos" (wasted votes) por circunscripción.
- * Para D'Hondt: votos de partidos que obtuvieron 0 escaños en cada circunscripción.
- * Estos son los votos que literalmente no eligieron a nadie.
+ * Calcula los votos "en restos" reales por circunscripción.
+ * 
+ * Para cada circunscripción, el último cociente que ganó escaño marca el
+ * "precio" de un escaño. Los restos de cada partido son:
+ * - Si tiene 0 escaños: TODOS sus votos son restos
+ * - Si tiene N escaños: votos - N × precio_escaño (la parte "sobrante" 
+ *   que no llegó para el siguiente escaño)
+ * 
+ * El "precio" se calcula como el menor cociente que ganó escaño en esa
+ * circunscripción (el cociente del último escaño asignado).
  */
 export function calculateWastedVotesCirc(
   circumscriptions: CircumscriptionVotes[],
@@ -384,10 +391,38 @@ export function calculateWastedVotesCirc(
   circumscriptions.forEach((circ, i) => {
     const result = circumscriptionResults[i];
     if (!result) return;
+    
+    // Find the "seat price": the lowest winning quotient in this circ
+    // This is: for each party with seats, votes/(seats) is their last winning quotient
+    // The minimum of all those is the cutoff
+    let seatPrice = 0;
+    const partiesWithSeats = Object.entries(result.allocation).filter(([_, s]) => s > 0);
+    if (partiesWithSeats.length > 0) {
+      // The last winning D'Hondt quotient for each party is votes/(seats_won)
+      // The minimum across all parties is the overall cutoff
+      seatPrice = Math.min(
+        ...partiesWithSeats.map(([party, seats]) => (circ.votes[party] || 0) / seats)
+      );
+    }
+    
     Object.entries(circ.votes).forEach(([party, votes]) => {
       totalVotesSum += votes;
-      if (votes > 0 && (result.allocation[party] || 0) === 0) {
-        wasted[party] = (wasted[party] || 0) + votes;
+      if (votes <= 0) return;
+      
+      const seatsWon = result.allocation[party] || 0;
+      let remainder: number;
+      
+      if (seatsWon === 0) {
+        // All votes are wasted
+        remainder = votes;
+      } else {
+        // Remainder = votes that didn't contribute to winning seats
+        // = votes - seats × seatPrice (capped at 0)
+        remainder = Math.max(0, votes - seatsWon * seatPrice);
+      }
+      
+      if (remainder > 0) {
+        wasted[party] = (wasted[party] || 0) + remainder;
       }
     });
   });
@@ -452,28 +487,47 @@ export function calculateWastedVotesBiprop(
 }
 
 /**
- * Devuelve el detalle de votos sin representación por partido y provincia.
- * Cuenta solo circunscripciones donde el partido obtuvo 0 escaños.
+ * Devuelve el detalle de votos en restos por partido y provincia.
+ * Incluye tanto partidos con 0 escaños (todos sus votos) como
+ * los restos de partidos que sí obtuvieron escaños.
  */
 export function calculateWastedVotesDetail(
   circumscriptions: CircumscriptionVotes[],
   circumscriptionResults: CircumscriptionResult[]
-): { [party: string]: { province: string; votes: number }[] } {
-  const wastedDetail: { [party: string]: { province: string; votes: number }[] } = {};
+): { [party: string]: { province: string; votes: number; seatsWon: number }[] } {
+  const wastedDetail: { [party: string]: { province: string; votes: number; seatsWon: number }[] } = {};
 
   circumscriptions.forEach((circ, i) => {
     const result = circumscriptionResults[i];
     if (!result) return;
 
-    Object.entries(circ.votes).forEach(([party, votes]) => {
-      if (votes > 0 && (result.allocation[party] || 0) === 0) {
-        if (!wastedDetail[party]) {
-          wastedDetail[party] = [];
-        }
+    // Calculate seat price for this circ
+    let seatPrice = 0;
+    const partiesWithSeats = Object.entries(result.allocation).filter(([_, s]) => s > 0);
+    if (partiesWithSeats.length > 0) {
+      seatPrice = Math.min(
+        ...partiesWithSeats.map(([party, seats]) => (circ.votes[party] || 0) / seats)
+      );
+    }
 
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      if (votes <= 0) return;
+      
+      const seatsWon = result.allocation[party] || 0;
+      let remainder: number;
+      
+      if (seatsWon === 0) {
+        remainder = votes;
+      } else {
+        remainder = Math.max(0, votes - seatsWon * seatPrice);
+      }
+      
+      if (remainder > 0) {
+        if (!wastedDetail[party]) wastedDetail[party] = [];
         wastedDetail[party].push({
           province: circ.name,
-          votes
+          votes: Math.round(remainder),
+          seatsWon
         });
       }
     });
@@ -483,31 +537,15 @@ export function calculateWastedVotesDetail(
 }
 
 /**
- * Devuelve el detalle de votos "sin representación local" en biproporcional:
- * provincias donde el partido no obtuvo escaño pero SÍ está cualificado
- * nacionalmente (sus votos contaron para el reparto nacional).
+ * Devuelve el detalle de votos en restos en biproporcional por partido y provincia.
+ * Usa la misma lógica de "seat price" que D'Hondt pero con las asignaciones biprop.
  */
 export function calculateUnrepresentedLocalDetail(
   circumscriptions: CircumscriptionVotes[],
   circumscriptionResults: CircumscriptionResult[],
-  threshold: number = 0.03
-): { [party: string]: { province: string; votes: number }[] } {
-  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
-  const detail: { [party: string]: { province: string; votes: number }[] } = {};
-
-  circumscriptions.forEach((circ, i) => {
-    const result = circumscriptionResults[i];
-    if (!result) return;
-
-    Object.entries(circ.votes).forEach(([party, votes]) => {
-      if (votes > 0 && (result.allocation[party] || 0) === 0 && qualifiedParties.has(party)) {
-        if (!detail[party]) detail[party] = [];
-        detail[party].push({ province: circ.name, votes });
-      }
-    });
-  });
-
-  return detail;
+  _threshold: number = 0.03
+): { [party: string]: { province: string; votes: number; seatsWon: number }[] } {
+  return calculateWastedVotesDetail(circumscriptions, circumscriptionResults);
 }
 
 /**

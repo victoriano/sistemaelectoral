@@ -618,13 +618,12 @@ export default function Simulator() {
 
       {/* ===== VOTOS EN RESTOS ===== */}
       <section id="restos" className="space-y-6">
-        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos perdidos</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos en restos</h3>
+        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos en restos</p>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos que no eligen a nadie</h3>
         <p className="text-sm text-muted-text">
-          Votos de partidos que no obtuvieron escaño en una circunscripción, calculados con la misma métrica para ambos sistemas.
-          En el Biproporcional, al repartir escaños nacionalmente, los partidos obtienen representación en más provincias,
-          reduciendo los votos sin representación. Además, en el Biproporcional estos votos no están &quot;perdidos&quot; del todo:
-          contribuyen al total nacional del partido aunque no haya representante local.
+          En cada circunscripción, parte de los votos no se traduce en escaños. Esto incluye todos los votos de partidos
+          que no obtuvieron ningún escaño, más los votos sobrantes de partidos que sí obtuvieron escaños pero les quedó
+          un excedente que no llegó para conseguir el siguiente. La misma métrica se aplica a ambos sistemas.
         </p>
 
         {(() => {
@@ -668,7 +667,7 @@ export default function Simulator() {
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño en su circunscripción</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">restos en todas las circunscripciones</div>
                 </div>
                 <div className={`rounded-2xl border p-5 text-center ${
                   bipropBetter ? "border-emerald-100 bg-emerald-50/30" : "border-amber-100 bg-amber-50/30"
@@ -683,7 +682,7 @@ export default function Simulator() {
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">votos sin escaño en su circunscripción (biprop)</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">restos en todas las circunscripciones (biprop)</div>
                 </div>
                 <div className={`rounded-2xl p-5 text-center text-white ${
                   bipropBetter ? "bg-emerald-500" : "bg-amber-500"
@@ -699,18 +698,18 @@ export default function Simulator() {
                   </div>
                   <div className="text-[10px] text-white/60 mt-1">
                     {bipropBetter
-                      ? "Reducción de votos sin representación"
-                      : "Más votos sin representación local"
+                      ? "Reducción de votos en restos"
+                      : "Más votos en restos"
                     }
                   </div>
                 </div>
               </div>
 
-              {/* Nota explicativa sobre la diferencia conceptual */}
+              {/* Nota explicativa */}
               <div className="rounded-xl bg-blue-50/50 border border-blue-100 p-4 text-sm text-body-text">
-                <strong>Nota:</strong> En D&apos;Hondt, los votos sin escaño en una circunscripción están <em>verdaderamente perdidos</em>.
-                En el Biproporcional, estos votos sí contribuyen al reparto nacional del partido aunque no haya representante local:
-                el voto cuenta, pero el votante no tiene diputado de su partido en su provincia.
+                <strong>¿Qué son los restos?</strong> En D&apos;Hondt, el último cociente que gana escaño marca el &quot;precio&quot;.
+                Los restos incluyen: todos los votos de partidos que no consiguieron ningún escaño en esa provincia,
+                más los votos sobrantes de partidos que sí obtuvieron escaños (la diferencia entre sus votos y lo que &quot;costaron&quot; sus escaños).
               </div>
             </>
           );
@@ -729,7 +728,7 @@ export default function Simulator() {
                     <span className="text-muted-text text-xs">▶</span>
                     <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
                     <span>{party}</span>
-                    <span className="text-xs text-muted-text">{formatCompactVotes(votes)} votos sin representación</span>
+                    <span className="text-xs text-muted-text">{formatCompactVotes(votes)} en restos</span>
                   </span>
                   {rescued && (
                     <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -762,7 +761,7 @@ export default function Simulator() {
                         <span className="text-muted-text text-xs">▶</span>
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: parties[party]?.color || "#888" }} />
                         <span>{party}</span>
-                        <span className="text-xs text-muted-text">{formatCompactVotes(votes)} sin escaño local</span>
+                        <span className="text-xs text-muted-text">{formatCompactVotes(votes)} en restos</span>
                       </span>
                       {rescued && (
                         <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
@@ -781,10 +780,10 @@ export default function Simulator() {
         )}
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
-          <strong>Metodología:</strong> En D&apos;Hondt, los votos en provincias donde el partido no obtiene escaño se pierden completamente.
-          En el Biproporcional, solo se pierden los votos de partidos que no superan el umbral ({threshold}%) en ninguna provincia.
-          Los votos &quot;sin representación local&quot; son de partidos cualificados que no obtienen escaño en esa provincia concreta,
-          pero sí contribuyen al total nacional del partido.
+          <strong>Metodología:</strong> Los restos se calculan provincia a provincia. El último cociente D&apos;Hondt que gana escaño
+          marca el &quot;precio&quot; de un escaño en esa circunscripción. Los restos de cada partido son: votos totales menos
+          (escaños obtenidos × precio). Los partidos con 0 escaños pierden todos sus votos. La misma métrica se aplica
+          a ambos sistemas usando sus respectivas asignaciones por circunscripción.
         </div>
       </section>
 
