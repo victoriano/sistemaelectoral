@@ -380,14 +380,57 @@ export function calculateWastedVotesCirc(
 
 /**
  * Calcula los votos "en restos" para el método Biproporcional.
- * Usa la misma lógica por circunscripción que D'Hondt, pero aplicada
- * sobre las asignaciones biproporcionales de la etapa 2.
+ * 
+ * En el sistema biproporcional, TODOS los votos de partidos que superan
+ * el umbral en al menos una circunscripción contribuyen al reparto nacional.
+ * Por tanto, solo son "votos perdidos" los de partidos que NO superaron
+ * el umbral en ninguna circunscripción.
+ * 
+ * Adicionalmente, calcula los votos "sin representación local": votos en
+ * circunscripciones donde el partido no obtuvo escaño en el reparto
+ * biproporcional (el votante no tiene representante local de su partido,
+ * aunque su voto sí contó nacionalmente).
  */
 export function calculateWastedVotesBiprop(
   circumscriptions: CircumscriptionVotes[],
-  circumscriptionResults: CircumscriptionResult[]
-): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
-  return calculateWastedVotesCirc(circumscriptions, circumscriptionResults);
+  circumscriptionResults: CircumscriptionResult[],
+  threshold: number = 0.03
+): {
+  byParty: { [party: string]: number };
+  total: number;
+  totalVotes: number;
+  unrepresentedLocal: { byParty: { [party: string]: number }; total: number };
+} {
+  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
+  const wasted: { [party: string]: number } = {};
+  const unrepLocal: { [party: string]: number } = {};
+  let totalVotesSum = 0;
+
+  circumscriptions.forEach((circ, i) => {
+    const result = circumscriptionResults[i];
+    if (!result) return;
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      totalVotesSum += votes;
+      if (votes > 0 && (result?.allocation[party] || 0) === 0) {
+        if (!qualifiedParties.has(party)) {
+          // Truly wasted: party didn't qualify anywhere
+          wasted[party] = (wasted[party] || 0) + votes;
+        } else {
+          // Not wasted nationally, but no local representation
+          unrepLocal[party] = (unrepLocal[party] || 0) + votes;
+        }
+      }
+    });
+  });
+
+  const total = Object.values(wasted).reduce((a, b) => a + b, 0);
+  const unrepTotal = Object.values(unrepLocal).reduce((a, b) => a + b, 0);
+  return {
+    byParty: wasted,
+    total,
+    totalVotes: totalVotesSum,
+    unrepresentedLocal: { byParty: unrepLocal, total: unrepTotal }
+  };
 }
 
 /**
@@ -419,6 +462,34 @@ export function calculateWastedVotesDetail(
   });
 
   return wastedDetail;
+}
+
+/**
+ * Devuelve el detalle de votos "sin representación local" en biproporcional:
+ * provincias donde el partido no obtuvo escaño pero SÍ está cualificado
+ * nacionalmente (sus votos contaron para el reparto nacional).
+ */
+export function calculateUnrepresentedLocalDetail(
+  circumscriptions: CircumscriptionVotes[],
+  circumscriptionResults: CircumscriptionResult[],
+  threshold: number = 0.03
+): { [party: string]: { province: string; votes: number }[] } {
+  const qualifiedParties = getQualifiedPartiesByCircumscriptionThreshold(circumscriptions, threshold);
+  const detail: { [party: string]: { province: string; votes: number }[] } = {};
+
+  circumscriptions.forEach((circ, i) => {
+    const result = circumscriptionResults[i];
+    if (!result) return;
+
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      if (votes > 0 && (result.allocation[party] || 0) === 0 && qualifiedParties.has(party)) {
+        if (!detail[party]) detail[party] = [];
+        detail[party].push({ province: circ.name, votes });
+      }
+    });
+  });
+
+  return detail;
 }
 
 /**
