@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { parties } from "@/data/elections2023";
+import { canonicalParties as parties } from "@/data/party-aliases";
 
 interface PactometroProps {
   dHondtSeats: { [party: string]: number };

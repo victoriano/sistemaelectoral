@@ -15,7 +15,7 @@ import {
   CircunscripcionData
 } from "@/data/elections2023";
 import { electionData, electionMetadata } from "@/data/all-elections";
-import { historicalParties } from "@/data/historical-elections";
+import { canonicalParties } from "@/data/party-aliases";
 import ComparisonChart from "./ComparisonChart";
 import ResultsTable from "./ResultsTable";
 import Pactometro from "./Pactometro";
@@ -28,7 +28,7 @@ const PRESETS: {[key: string]: { name: string; multipliers?: {[party: string]: n
   },
   "izquierdasFuerte": {
     name: "Izquierdas +",
-    multipliers: { PSOE: 1.3, PP: 0.85, SUMAR: 1.1, UP: 1.1, Podemos: 1.1 }
+    multipliers: { PSOE: 1.3, PP: 0.85, SUMAR: 1.1, UP: 1.1, PODEMOS: 1.1 }
   },
   "empate": {
     name: "Empate técnico",
@@ -36,7 +36,7 @@ const PRESETS: {[key: string]: { name: string; multipliers?: {[party: string]: n
   },
   "terceros": {
     name: "Auge terceros",
-    multipliers: { PP: 0.8, PSOE: 0.8, VOX: 1.4, SUMAR: 1.5, Cs: 1.4, UP: 1.4 }
+    multipliers: { PP: 0.8, PSOE: 0.8, VOX: 1.4, SUMAR: 1.5, Cs: 1.4, UP: 1.4, PODEMOS: 1.4 }
   },
 };
 
@@ -69,10 +69,10 @@ export default function Simulator() {
       .map(([party]) => party);
   }, [baseCircumscriptions]);
 
-  // Build a PartyInfo-compatible map from historicalParties
+  // Build a PartyInfo-compatible map from the canonical party metadata
   const parties = useMemo(() => {
     const result: {[key: string]: { name: string; shortName: string; color: string; national: boolean }} = {};
-    for (const [key, info] of Object.entries(historicalParties)) {
+    for (const [key, info] of Object.entries(canonicalParties)) {
       result[key] = { name: info.name, shortName: key, color: info.color, national: true };
     }
     return result;
@@ -106,7 +106,7 @@ export default function Simulator() {
   // Base D'Hondt result (unadjusted, for summary pills showing real seats)
   const baseDHondtResult = useMemo(() =>
     dHondtByCircumscription(
-      baseCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      baseCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
       0.03
     ),
     [baseCircumscriptions]
@@ -122,14 +122,14 @@ export default function Simulator() {
 
   const dHondtResult = useMemo(() => {
     return dHondtByCircumscription(
-      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
       threshold / 100
     );
   }, [adjustedCircumscriptions, threshold]);
 
   const gimeResults = useMemo(() => {
     return runGIME(
-      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
       totalSeats,
       governabilityBonus,
       threshold / 100
@@ -141,7 +141,7 @@ export default function Simulator() {
   // D'Hondt: circumscription-level waste (votes in circs where party got 0 seats)
   const wastedDHondt = useMemo(() =>
     calculateWastedVotesCirc(
-      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
       dHondtResult.results
     ),
     [adjustedCircumscriptions, dHondtResult]
@@ -152,7 +152,7 @@ export default function Simulator() {
   const wastedBiprop = useMemo(() => {
     const stage2 = gimeResults.find(s => s.circumscriptionAllocations);
     return calculateWastedVotesBiprop(
-      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+      adjustedCircumscriptions.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
       stage2?.circumscriptionAllocations || [],
       gimeNational
     );
@@ -580,7 +580,7 @@ export default function Simulator() {
                       : "—"
                     }
                   </div>
-                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos bajo umbral nacional</div>
+                  <div className="text-[10px] text-muted-text mt-0.5">votos de partidos sin escaños a nivel nacional</div>
                 </div>
                 <div className={`rounded-2xl p-5 text-center text-white ${
                   bipropBetter ? "bg-emerald-500" : "bg-amber-500"
@@ -597,7 +597,7 @@ export default function Simulator() {
                   <div className="text-[10px] text-white/60 mt-1">
                     {bipropBetter
                       ? "Reducción de votos perdidos"
-                      : "El umbral nacional afecta a partidos regionalistas"
+                      : "Algunos partidos quedan fuera del reparto nacional"
                     }
                   </div>
                 </div>
@@ -605,9 +605,11 @@ export default function Simulator() {
 
               {!bipropBetter && (
                 <div className="rounded-xl bg-amber-50 border border-amber-200 p-4 text-sm text-body-text">
-                  <strong>¿Por qué el Biproporcional pierde más votos?</strong> Con un umbral del {threshold}% aplicado a nivel nacional,
-                  los partidos regionalistas (ERC, Junts, PNV, Bildu...) quedan por debajo y pierden toda su representación.
-                  En D&apos;Hondt, el mismo umbral se aplica por circunscripción, donde estos partidos sí superan el {threshold}%.
+                  <strong>¿Por qué el Biproporcional pierde más votos?</strong> El cuórum del {threshold}% se comprueba
+                  circunscripción a circunscripción: basta superarlo en una para entrar en el reparto nacional. Aun así,
+                  los partidos que se quedan sin escaño en el reparto nacional pierden todos sus votos: afecta a partidos
+                  muy pequeños de implantación local y, con umbrales altos, a los que no alcanzan el {threshold}% en ninguna
+                  circunscripción.
                   <strong> Prueba a bajar el umbral electoral</strong> para ver cómo cambia esta cifra.
                 </div>
               )}
@@ -649,7 +651,7 @@ export default function Simulator() {
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
           <strong>Metodología:</strong> D&apos;Hondt cuenta votos en circunscripciones donde el partido obtuvo 0 escaños.
-          El Biproporcional solo cuenta votos de partidos que no superaron el umbral nacional, ya que los demás votos contribuyen al reparto nacional independientemente de la circunscripción.
+          El Biproporcional solo cuenta los votos de partidos sin ningún escaño a nivel nacional, ya que los votos de los demás contribuyen al reparto nacional independientemente de la circunscripción.
         </div>
       </section>
 
@@ -778,8 +780,16 @@ export default function Simulator() {
                 </summary>
                 <div className="px-5 pb-5">
                   <p className="text-sm text-muted-text mb-3">{stage.description}</p>
-                  {stage.iterations && (
-                    <p className="text-xs text-step-blue mb-3">Convergencia en {stage.iterations} iteraciones</p>
+                  {stage.iterations !== undefined && (
+                    stage.converged !== false ? (
+                      <p className="text-xs text-step-blue mb-3">
+                        Convergencia en {stage.iterations} {stage.iterations === 1 ? "iteración" : "iteraciones"}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-600 mb-3">
+                        Sin convergencia tras {stage.iterations} iteraciones — resultado aproximado (cuadran los totales por circunscripción)
+                      </p>
+                    )
                   )}
                   <div className="flex flex-wrap gap-1.5">
                     {Object.entries(stage.nationalAllocation)

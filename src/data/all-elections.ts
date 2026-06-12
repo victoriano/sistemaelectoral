@@ -2,6 +2,7 @@
 // Fuente: Ministerio del Interior (infoelectoral.interior.gob.es)
 
 import { CircunscripcionData } from "./elections2023";
+import { normalizeElectionData } from "./party-aliases";
 import { circunscripciones as circunscripciones2023 } from "./elections2023";
 import { circunscripciones2019N } from "./elections2019N";
 import { circunscripciones2019A } from "./elections2019A";
@@ -97,7 +98,8 @@ export const electionMetadata: { [key: string]: ElectionMetadata } = {
   },
 };
 
-export const electionData: { [key: string]: CircunscripcionData[] } = {
+// Raw data as loaded from the per-election files (source labels).
+const rawElectionData: { [key: string]: CircunscripcionData[] } = {
   "2027*": circunscripciones2027,
   "2023": circunscripciones2023,
   "2019-N": circunscripciones2019N,
@@ -111,6 +113,17 @@ export const electionData: { [key: string]: CircunscripcionData[] } = {
   "1996": circunscripciones1996,
   "1993": circunscripciones1993,
 };
+
+// Canonical party keys applied ONCE here, so every consumer (Simulator,
+// Pactometro, KPIs, verify_seats.ts) sees the same normalized keys.
+// See src/data/party-aliases.ts for the alias map.
+export const electionData: { [key: string]: CircunscripcionData[] } =
+  Object.fromEntries(
+    Object.entries(rawElectionData).map(([year, circs]) => [
+      year,
+      normalizeElectionData(year, circs),
+    ])
+  );
 
 export function getElectionYears(): string[] {
   return Object.keys(electionMetadata);

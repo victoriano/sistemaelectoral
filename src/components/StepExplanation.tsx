@@ -25,9 +25,9 @@ const steps: Step[] = [
     description: "Los votos se suman y reparten proporcionalmente usando D'Hondt",
     details: [
       "Se suman todos los votos de cada partido a nivel nacional",
+      "Participan los partidos que superan la barrera (3%) en al menos una circunscripción",
       "Se aplica el método D'Hondt para asignar los 350 escaños",
-      "Cada partido sabe cuántos escaños le corresponden en total",
-      "Ventaja: perfecta proporcionalidad nacional"
+      "Ventaja: proporcionalidad a nivel nacional"
     ],
     circleColor: "bg-step-blue",
     circleBg: "bg-step-blue-light",
@@ -42,10 +42,10 @@ const steps: Step[] = [
     shortDesc: "Se distribuyen los escaños de cada partido entre las circunscripciones respetando ambos totales marginales.",
     description: "Los escaños de cada partido se distribuyen entre las circunscripciones",
     details: [
-      "Algoritmo iterativo que ajusta la distribución",
+      "Algoritmo iterativo de divisores que ajusta la distribución",
       "Restricción 1: cada partido mantiene su total de escaños (de Etapa 1)",
       "Restricción 2: cada circunscripción mantiene su número de escaños",
-      "Ningún partido pierde escaños respecto a etapas anteriores (no regresión)"
+      "Redondeo estándar (Webster/Sainte-Laguë), como el sistema biproporcional de Zúrich"
     ],
     circleColor: "bg-step-amber",
     circleBg: "bg-step-amber-light",
@@ -56,14 +56,14 @@ const steps: Step[] = [
   {
     number: 3,
     title: "Ajuste de Gobernabilidad (Opcional)",
-    shortTitle: "Verificación",
-    shortDesc: "Se comprueba la no regresión: ningún partido pierde escaños respecto al método D'Hondt original.",
+    shortTitle: "Bonificación opcional",
+    shortDesc: "Opcionalmente, el partido más votado recibe escaños extra para facilitar la gobernabilidad y el reparto provincial se recalcula.",
     description: "Bonificación al partido ganador para facilitar gobierno",
     details: [
       "Este paso es opcional y configurable",
       "El partido ganador puede recibir escaños adicionales",
       "Los escaños se restan proporcionalmente de los demás partidos",
-      "Equilibrio entre representatividad y gobernabilidad"
+      "El reparto provincial se recalcula biproporcionalmente con los totales tras la bonificación"
     ],
     circleColor: "bg-step-pink",
     circleBg: "bg-step-pink-light",

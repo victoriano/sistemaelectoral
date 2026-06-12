@@ -6,7 +6,9 @@
     "dev": "lsof -ti :3000 | xargs kill -9 2>/dev/null; rm -rf .next; next dev -p 3000",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "verify": "npx tsx verify_seats.ts",
+    "verify:biprop": "npx tsx scripts/verify_biprop.ts"
   },
   "dependencies": {
     "next": "14.2.3",

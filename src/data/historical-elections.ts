@@ -117,6 +117,10 @@ export const historicalElections: { [key: string]: ElectionData } = {
 };
 
 // Votos nacionales por partido para cada elección (para simular)
+// Cifras derivadas de la suma provincial de electionData (all-elections.ts,
+// claves canónicas tras party-aliases.ts). Para 2015/2019-N/2023 los datos
+// provinciales son oficiales (MIR); UPN se contabiliza aparte de PP y las
+// confluencias de Podemos van agregadas (UP incluye ECP en 2019).
 export const nationalVotes: { [year: string]: { [party: string]: number } } = {
   "2023": {
     PP: 8160837, PSOE: 7821718, VOX: 3057000, SUMAR: 3044996,
@@ -124,37 +128,37 @@ export const nationalVotes: { [year: string]: { [party: string]: number } } = {
     BNG: 153995, CCA: 116363, UPN: 52188
   },
   "2019-N": {
-    PSOE: 6792199, PP: 5047040, VOX: 3640417, UP: 2381960,
-    ERC: 874859, Cs: 1637540, JUNTS: 527375, PNV: 379002,
-    BILDU: 277621, MP: 341354, CUP: 244754, CCA: 123981,
-    BNG: 120456, NA: 98448, PRC: 47432, TE: 47719
+    PSOE: 6792199, PP: 5047040, VOX: 3656979, UP: 3119364,
+    ERC: 874859, Cs: 1650318, JUNTS: 530225, PNV: 379002,
+    BILDU: 277621, MP: 382823, CUP: 246971, CCA: 124289,
+    BNG: 120456, NA: 99078, PRC: 68830, TE: 19761
   },
   "2019-A": {
-    PSOE: 7513142, PP: 4373653, Cs: 4155665, UP: 3732929,
-    VOX: 2688092, ERC: 1020392, JUNTS: 500787, PNV: 395197,
-    BILDU: 259647, CCA: 139083, COMPROMIS: 175614, PRC: 51688
+    PSOE: 7513142, PP: 4373653, Cs: 4155665, UP: 3751145,
+    VOX: 2688092, ERC: 1020392, JUNTS: 500787, PNV: 395884,
+    BILDU: 259647, CCA: 137664, COMPROMIS: 173821, PRC: 52266
   },
   "2016": {
     PP: 7941236, PSOE: 5443846, UP: 5087538, Cs: 3141570,
-    ERC: 639652, CDC: 483488, PNV: 287014, BILDU: 184713, CCA: 78253
+    ERC: 632234, CDC: 483488, PNV: 287014, BILDU: 184713, CCA: 78253
   },
   "2015": {
-    PP: 7236965, PSOE: 5545315, Podemos: 5212711, Cs: 3514528,
-    ERC: 601782, CDC: 565501, PNV: 302316, UP: 926783, 
-    BILDU: 219181, CCA: 81917
+    PP: 7134721, PSOE: 5545315, Podemos: 5212711, Cs: 3514528,
+    ERC: 601782, CDC: 567253, PNV: 302316, UP: 926783,
+    BILDU: 219125, CCA: 81917
   },
   "2011": {
-    PP: 10866566, PSOE: 7003511, CiU: 1015691, IU: 1686040,
+    PP: 10740050, PSOE: 7003511, CiU: 1015691, IU: 1686040,
     AMAIUR: 334498, UPyD: 1143225, PNV: 324317, ERC: 256985,
     BNG: 184037, CCA: 143881, COMPROMIS: 125306, FAC: 99473, GBAI: 42415
   },
   "2008": {
-    PSOE: 11289335, PP: 10278010, CiU: 779425, PNV: 306128,
-    ERC: 291532, IU: 969946, BNG: 212543, CCA: 174629, 
+    PSOE: 11289335, PP: 10144951, CiU: 779425, PNV: 306128,
+    ERC: 298139, IU: 969946, BNG: 212543, CCA: 174629,
     UPyD: 306079, NA: 62398
   },
   "2004": {
-    PSOE: 11026163, PP: 9763144, CiU: 835471, ERC: 652196,
+    PSOE: 11026163, PP: 9635491, CiU: 835471, ERC: 652196,
     PNV: 420980, IU: 1284081, CCA: 235221, BNG: 208688,
     CHA: 94252, EA: 80905, NA: 61045
   },

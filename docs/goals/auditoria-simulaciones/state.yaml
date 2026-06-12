@@ -1,0 +1,427 @@
+goal:
+  slug: auditoria-simulaciones
+  title: "Auditoría y mejora de las simulaciones del sistema electoral"
+  status: done
+  mode: audit_then_execute
+  agents: installed
+  visual_board: none
+
+tasks:
+  - id: T001
+    type: scout
+    assignee: Scout
+    status: done
+    objective: "Mapear cómo se calculan los escaños y KPIs: algoritmos (D'Hondt real y método biproporcional), datos de elecciones, umbrales, redondeos, votos en blanco, y el script verify_seats.ts. Identificar candidatos a fallo."
+    inputs:
+      - src/
+      - verify_seats.ts
+      - README.md
+    receipt:
+      result: done
+      note: notes/T001-hallazgos-scout.md
+      summary: "11 hallazgos. Críticos: gimeStage2 roto (9798 escaños en 2023), datos 2023/2027 fabricados (sumas −12/−14% vs reales), umbral 3% aplicado nacionalmente (aniquila regionales, contradice copy), claves de partido inconsistentes (rompe pactómetro 2015-2019). verify_seats.ts tiene baseline erróneo."
+      evidence:
+        - src/lib/electoral-methods.ts
+        - src/data/elections2023.ts
+        - src/components/Simulator.tsx
+        - verify_seats.ts
+
+  - id: T002
+    type: scout
+    assignee: Scout
+    status: done
+    objective: "Verificar numéricamente los escaños D'Hondt calculados contra resultados oficiales (Ministerio del Interior) para varias elecciones (p.ej. 2023, 2019N, 2016, 2000, 1993) y detectar discrepancias y su causa probable."
+    receipt:
+      result: done
+      summary: "Cubierto dentro de T001: verify_seats.ts ejecutado; 2023 desvía PSOE +3/SUMAR −3/VOX +1/PP −1/JUNTS −1 por datos fabricados; diffs 1993-2011 son mayormente artefactos de etiquetas y de un baseline que no suma 350."
+
+  - id: T003
+    type: judge
+    assignee: Judge
+    status: done
+    objective: "Priorizar los fallos encontrados por impacto/confianza/reversibilidad y definir el primer slice de Worker con allowed_files, verify y stop_if."
+    receipt:
+      result: done
+      note: notes/T003-decision-judge.md
+      decision: "Umbral 3% nacional en biprop = BUG. Regla: >=3% de votos válidos en >=1 circunscripción para elegibilidad nacional. Orden: W1 baseline -> W2 party-keys -> W3 rules -> W4 biprop -> W5 stage3 -> W6 data-2023 (red) -> W7 copy."
+      next_allowed_task: W1
+
+  - id: W1
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Arreglar verify_seats.ts: totales esperados suman 350, mapa de alias de etiquetas, cubre 1993-2023, allowlist KNOWN_DATA_ISSUES para 2023, exit !=0 en diffs no permitidos."
+    allowed_files:
+      - verify_seats.ts
+      - package.json
+    verify:
+      - "npx tsx verify_seats.ts && echo EXIT_OK"
+      - "npm run build"
+    stop_if:
+      - "Requiere tocar src/data/* o src/lib/*."
+      - "Un baseline 1993-2019 no se puede afirmar con confianza sumando 350: marcar la elección, no inventar."
+    receipt:
+      result: done
+      changed_files:
+        - verify_seats.ts
+        - package.json
+      commands:
+        - cmd: "npx tsx verify_seats.ts && echo EXIT_OK"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+        - cmd: "inyección de diff falso -> exit 1"
+          status: pass
+      summary: "Harness completo: 11 elecciones con baselines oficiales sumando 350, mapa ALIASES por elección, allowlist KNOWN_DATA_ISSUES (2023 + 1993/2015/2019N con TODOs), npm run verify. PM ratifica: PNV +1 añadido a allowlist 2023 (medido); allowlists extra para 1993/2015/2019N son deuda de datos, cubierta por W8."
+
+  - id: W2
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Capa de normalización canónica de claves de partido (src/data/party-aliases.ts) aplicada al cargar, para que pactómetro/coaliciones funcionen en 1993-2027."
+    allowed_files:
+      - src/data/party-aliases.ts
+      - src/data/all-elections.ts
+      - src/components/Pactometro.tsx
+      - src/components/Simulator.tsx
+      - verify_seats.ts
+    verify:
+      - "npx tsx verify_seats.ts"
+      - "assert script: 2015/2016/2019A/2019N contienen BILDU, PNV, CCA (y JUNTS en 2019N) con >0 escaños"
+      - "npm run build"
+    stop_if:
+      - "Exige editar en masa más de un electionsYYYY.ts."
+      - "Decisión semántica de fusión no listada por Scout (p.ej. ECP en PODEMOS): escalar."
+    receipt:
+      result: done
+      changed_files:
+        - src/data/party-aliases.ts
+        - src/data/all-elections.ts
+        - src/components/Simulator.tsx
+        - src/components/Pactometro.tsx
+        - verify_seats.ts
+      commands:
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npx tsx /tmp/check_keys.ts (BILDU/PNV/CCA/JUNTS >0 en 2015-2019N)"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "Normalización canónica en party-aliases.ts aplicada una vez en all-elections.ts. Pactómetro/coaliciones ya cuentan BILDU, PNV, CCA, JUNTS, Cs, PODEMOS en 2015-2019. Residuales documentados: BILDU/AMAIUR 2011 (solo conteo), UPN no fusionado en app, BNG-NÓS y MP-CHA sin fusionar (0 escaños)."
+
+  - id: W3
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Implementar ruling de umbral (>=3% válidos en >=1 circunscripción para Stage 1), desempate LOREG, hook blankVotes (default 0) y guard contra <350 escaños."
+    allowed_files:
+      - src/lib/electoral-methods.ts
+      - scripts/verify_rules.ts
+    verify:
+      - "npx tsx scripts/verify_rules.ts (ERC/JUNTS/PNV/BILDU/BNG >0 en biprop 2023; total 350)"
+      - "npx tsx verify_seats.ts (D'Hondt histórico sin cambios)"
+      - "npm run build"
+    stop_if:
+      - "Los baselines provinciales D'Hondt cambian."
+      - "El desempate cambia algún baseline histórico: parar y reportar."
+    receipt:
+      result: done
+      changed_files:
+        - src/lib/electoral-methods.ts
+        - scripts/verify_rules.ts
+      commands:
+        - cmd: "npx tsx scripts/verify_rules.ts"
+          status: pass
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "Quorum por circunscripción implementado (getBiproportionalEligibleParties); denominador con blankVotes opcional; desempate LOREG 163.1.d con cross-multiplication exacta; guards anti-pérdida de escaños. Biprop 2023 Stage 1: PP 120, PSOE 115, VOX 46, SUMAR 45, ERC 7, JUNTS 6, BILDU 5, PNV 4, CCA 1, BNG 1 = 350. Baselines históricos D'Hondt sin cambios."
+
+  - id: W4
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Reemplazar gimeStage2 por método biproporcional de escalado alternado correcto (marginales fila/columna garantizados, total 350, iteraciones veraces)."
+    allowed_files:
+      - src/lib/electoral-methods.ts
+      - scripts/verify_biprop.ts
+      - package.json
+    verify:
+      - "npx tsx scripts/verify_biprop.ts (12 datasets: marginales exactos, total 350, converged)"
+      - "npx tsx verify_seats.ts"
+      - "npm run build"
+    stop_if:
+      - "No converge en algún dataset: reportar, no parchear con movimientos ad-hoc."
+      - "Algún dataset tarda >5s."
+    receipt:
+      result: done
+      changed_files:
+        - src/lib/electoral-methods.ts
+        - scripts/verify_biprop.ts
+        - package.json
+      commands:
+        - cmd: "npx tsx scripts/verify_biprop.ts"
+          status: pass
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "gimeStage2 reemplazado por escalado alternado con signpost Webster (Zúrich). 12/12 datasets convergen (3-17 iteraciones, <35ms), marginales fila/columna exactos, total 350. Desempates deterministas documentados. Firma preservada, Simulator sin cambios. Madrid 2023: 37/37 (PP 14, PSOE 11, SUMAR 7, VOX 5)."
+
+  - id: W5
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "gimeStage3 (bonus gobernabilidad) preserva total=350 exacto y coherencia de tablas provinciales."
+    allowed_files:
+      - src/lib/electoral-methods.ts
+      - scripts/verify_biprop.ts
+      - src/components/Simulator.tsx
+    verify:
+      - "npx tsx scripts/verify_biprop.ts con bonus 0/5/10/15 en 2023 y 2019N: total 350, ganador +bonus exacto, sin negativos"
+      - "npm run build"
+    stop_if:
+      - "El diseño coherente exige rehacer el flujo UI del Simulator: proponer, no implementar."
+    receipt:
+      result: done
+      changed_files:
+        - src/lib/electoral-methods.ts
+        - scripts/verify_biprop.ts
+      commands:
+        - cmd: "npx tsx scripts/verify_biprop.ts (12 datasets + Stage3 bonus 0/5/10/15 en 2023 y 2019N)"
+          status: pass
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "gimeStage3 reescrito: ganador +bonus exacto, reducciones por largest-remainder que suman exactamente el bonus, total 350, sin negativos, clamp documentado. Re-ejecuta Stage 2 con targets post-bonus para coherencia provincial. bonus=0 devuelve identidad. Simulator sin cambios."
+
+  - id: W6
+    type: worker
+    assignee: Worker
+    status: done
+    needs: network (disponible en esta sesión via WebFetch)
+    objective: "Reemplazar elections2023.ts con datos oficiales por provincia (todos los partidos + blancos), regenerar elections2027.ts documentando derivación, quitar allowlist de verify_seats.ts."
+    allowed_files:
+      - src/data/elections2023.ts
+      - src/data/elections2027.ts
+      - verify_seats.ts
+      - scripts/fetch_2023.ts
+    verify:
+      - "npx tsx verify_seats.ts: 2023 exacto (PP 137, PSOE 121, VOX 33, SUMAR 31, ERC 7, JUNTS 7, BILDU 6, PNV 5, BNG 1, CCA 1, UPN 1), allowlist vacía, exit 0"
+      - "sumas provinciales por partido dentro de 0.1% de totales oficiales"
+      - "npm run build"
+    stop_if:
+      - "No se pueden obtener y contrastar cifras oficiales por provincia: NO teclear aproximaciones."
+    receipt:
+      result: done
+      changed_files:
+        - src/data/elections2023.ts
+        - src/data/elections2027.ts
+        - verify_seats.ts
+        - scripts/fetch_2023.ts
+      commands:
+        - cmd: "npx tsx verify_seats.ts (2023 EXACTO, allowlist 2023 eliminada)"
+          status: pass
+        - cmd: "npx tsx scripts/verify_biprop.ts"
+          status: pass
+        - cmd: "npx tsx scripts/verify_rules.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "Datos oficiales infoelectoral (02202307_TOTA.zip, ficheros 08/07/03): todas las candidaturas por provincia + blancos. 2023 reproduce exacto PP 137/PSOE 121/VOX 33/SUMAR 31/ERC 7/JUNTS 7/BILDU 6/PNV 5/BNG 1/CCA 1/UPN 1. Cross-check con Wikipedia. 2027 regenerado con swing uniforme sobre geografía oficial, derivación en cabecera. fetch_2023.ts reproducible."
+
+  - id: W8
+    type: worker
+    assignee: Worker
+    status: done
+    needs: network
+    objective: "Corregir datos provinciales de 1993 (Madrid/CDS), 2015 (Barcelona/Lleida CDC) y 2019N para eliminar sus entradas de KNOWN_DATA_ISSUES, contrastando con datos oficiales."
+    allowed_files:
+      - src/data/elections1993.ts
+      - src/data/elections2015.ts
+      - src/data/elections2019N.ts
+      - verify_seats.ts
+    verify:
+      - "npx tsx verify_seats.ts: allowlist de 1993/2015/2019N vacía, exit 0"
+      - "npm run build"
+    stop_if:
+      - "No se pueden contrastar cifras oficiales: no inventar."
+    receipt:
+      result: done
+      changed_files:
+        - src/data/elections1993.ts
+        - src/data/elections2015.ts
+        - src/data/elections2019N.ts
+        - verify_seats.ts
+        - scripts/fetch_historical.ts
+      commands:
+        - cmd: "npx tsx verify_seats.ts (11/11 exacto, allowlist vacía)"
+          status: pass
+        - cmd: "npx tsx scripts/verify_biprop.ts"
+          status: pass
+        - cmd: "npx tsx scripts/verify_rules.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "Tres datasets regenerados de infoelectoral oficial. Causas raíz: 2019N tenía apportionment de 2023 (Valencia 16/Badajoz 5 vs oficial 15/6); CDS 1993 era el denominador sin blancos (3.02% candidaturas vs 2.99% válidos en Madrid). PM ratifica: harness ahora pasa blankVotes; seat counts 2019N corregidos (BOE); fichero 08 autoritativo ante quirk MIR 1993. Deuda menor -> W9."
+
+  - id: W9
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Corregir nationalVotes de historical-elections.ts para que coincida con las sumas provinciales oficiales de electionData (p.ej. VOX 2019N 3656979, BILDU 2015 219125)."
+    allowed_files:
+      - src/data/historical-elections.ts
+      - verify_seats.ts
+    verify:
+      - "script ad-hoc: nationalVotes == suma provincial por partido (tras alias) en todas las elecciones, o discrepancia documentada"
+      - "npx tsx verify_seats.ts"
+      - "npm run build"
+    stop_if:
+      - "Requiere red o cifras no derivables de electionData."
+    receipt:
+      result: done
+      changed_files:
+        - src/data/historical-elections.ts
+      commands:
+        - cmd: "npx tsx /tmp/compare_votes.ts (0 discrepancias en elecciones oficiales)"
+          status: pass
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "nationalVotes sincronizado con sumas provinciales (2015/2019N corregidos; 2016/2019A/2004/2008/2011 ajustes <2%). Residual documentado: gaps >2% en IU/AMAIUR/GBAI 2004-2011 por datos provinciales no oficiales -> W10."
+
+  - id: W10
+    type: worker
+    assignee: Worker
+    status: done
+    needs: network
+    objective: "Regenerar desde infoelectoral oficial los datasets restantes (1996, 2000, 2004, 2008, 2011, 2016, 2019A) extendiendo scripts/fetch_historical.ts, manteniendo 11/11 exacto en verify_seats."
+    allowed_files:
+      - src/data/elections1996.ts
+      - src/data/elections2000.ts
+      - src/data/elections2004.ts
+      - src/data/elections2008.ts
+      - src/data/elections2011.ts
+      - src/data/elections2016.ts
+      - src/data/elections2019A.ts
+      - src/data/historical-elections.ts
+      - verify_seats.ts
+      - scripts/fetch_historical.ts
+    verify:
+      - "npx tsx verify_seats.ts: 11/11 exacto, sin allowlist"
+      - "npx tsx scripts/verify_biprop.ts"
+      - "npx tsx scripts/verify_rules.ts"
+      - "npm run build"
+    stop_if:
+      - "No se pueden contrastar cifras oficiales de alguna elección: dejarla intacta y reportar."
+    receipt:
+      result: done
+      changed_files:
+        - src/data/elections1996.ts
+        - src/data/elections2000.ts
+        - src/data/elections2004.ts
+        - src/data/elections2008.ts
+        - src/data/elections2011.ts
+        - src/data/elections2016.ts
+        - src/data/elections2019A.ts
+        - src/data/historical-elections.ts
+        - scripts/fetch_historical.ts
+      commands:
+        - cmd: "npx tsx verify_seats.ts (11/11 exacto, allowlist vacía)"
+          status: pass
+        - cmd: "npx tsx scripts/verify_biprop.ts"
+          status: pass
+        - cmd: "npx tsx scripts/verify_rules.ts"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "7 elecciones regeneradas de infoelectoral (todas las candidaturas + blancos oficiales, cabeceras con fuente). Correcciones notables: IU infracontado 16-35% en 1996-2011; Navarra 2011 (GBAI/AMAIUR) corregida; UP 2019A +19.6%. Apportionments verificados contra fichero 07: sin más errores. fetch_historical.ts cubre las 10 elecciones, reproducible. 38 cifras cross-checked con Wikipedia."
+
+  - id: W7
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Alinear copy con comportamiento real: badge de iteraciones lee iterations real, números de page.tsx refrescados, descripciones de Stage 3 y votos desperdiciados."
+    allowed_files:
+      - src/app/page.tsx
+      - src/components/Simulator.tsx
+      - src/components/StepExplanation.tsx
+    verify:
+      - "npm run build"
+      - "grep: el badge interpola iterations del resultado Stage 2, no un literal"
+    stop_if:
+      - "Un cambio de copy afirmaría un número que ningún script verifica: añadirlo al script primero o eliminar la afirmación."
+    receipt:
+      result: done
+      changed_files:
+        - src/app/page.tsx
+        - src/components/Simulator.tsx
+        - src/components/StepExplanation.tsx
+      commands:
+        - cmd: "npm run build"
+          status: pass
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npx tsx /tmp/audit_copy.ts (todas las cifras del copy recomputadas)"
+          status: pass
+      summary: "10 correcciones de copy (badge convergencia real con guard converged; umbral nacional -> quorum por circunscripción en 4 textos; votos/escaño 64.600/98.200; StepExplanation alineado con Webster y Stage 3 real). 8 afirmaciones verificadas y mantenidas. Residual: cifras de sistemas extranjeros (Grecia/Italia/Francia) sin fact-check, fuera de scope."
+
+  - id: W11
+    type: worker
+    assignee: Worker
+    status: done
+    objective: "Pasar blankVotes en las tres llamadas al motor de Simulator.tsx (y en verify_biprop/verify_rules para paridad con la app), eliminando el escaño fantasma CDS 1993 en la UI."
+    allowed_files:
+      - src/components/Simulator.tsx
+      - scripts/verify_biprop.ts
+      - scripts/verify_rules.ts
+    verify:
+      - "npx tsx verify_seats.ts"
+      - "npx tsx scripts/verify_biprop.ts"
+      - "npx tsx scripts/verify_rules.ts (incl. assert: input shape de la app da PSOE 159/CDS 0 en 1993)"
+      - "npm run build"
+    stop_if:
+      - "Cambia algún baseline histórico distinto de 1993 CDS->PSOE."
+    receipt:
+      result: done
+      changed_files:
+        - src/components/Simulator.tsx
+        - scripts/verify_biprop.ts
+        - scripts/verify_rules.ts
+      commands:
+        - cmd: "npx tsx verify_seats.ts"
+          status: pass
+        - cmd: "npx tsx scripts/verify_biprop.ts"
+          status: pass
+        - cmd: "npx tsx scripts/verify_rules.ts (assert 1993: PSOE 159/CDS 0 con input de la app)"
+          status: pass
+        - cmd: "npm run build"
+          status: pass
+      summary: "blankVotes pasado en los 5 call sites del motor en Simulator.tsx (no solo los 3 detectados por el audit) + paridad en verify_biprop/verify_rules. La UI ya computa 1993 oficial (PSOE 159/CDS 0)."
+
+  - id: T999
+    type: judge
+    assignee: Judge
+    status: done
+    objective: "Auditar si el outcome original (cálculo correcto y verificable de las simulaciones) está completo."
+    receipt:
+      result: done
+      note: "Auditoría independiente: harnesses leídos línea a línea, gates re-ejecutados, motor y datos inspeccionados. Encontró el gap de blankVotes en Simulator.tsx (corregido en W11). Tras W11, PM re-ejecutó los 4 gates: seats 0 / biprop 0 / rules 0 / build 0."
+      decision: complete
+      full_outcome_complete: true
+      evidence:
+        - "D'Hondt reproduce 11/11 elecciones oficiales sin allowlist (verify_seats.ts, exit 0)"
+        - "Biproporcional: marginales fila/columna exactos, total 350, convergencia real en 12/12 datasets; Webster/Zúrich; Stage 3 con largest-remainder y re-fit provincial (verify_biprop.ts)"
+        - "Reglas LOREG: quorum por circunscripción, desempate 163.1.d, denominador con blancos (verify_rules.ts, incl. caso CDS 1993)"
+        - "Datos: 12 datasets regenerados de infoelectoral con cabeceras de fuente, todas las candidaturas y blancos; scripts de regeneración reproducibles"
+        - "Copy alineado con el comportamiento real (10 correcciones W7)"
+      residual_debt:
+        - "Sin test E2E de navegador (pactómetro/badges verificados por lectura de código y build)"
+        - "Cifras de sistemas extranjeros (Grecia/Italia/Francia) en page.tsx sin fact-check"
+        - "BILDU/AMAIUR 2011: la app muestra BILDU; alias de conteo solo en harness (deliberado)"
+        - "check_data.ts suelto en raíz (borrado denegado al PM; eliminar a mano)"
+        - "package.json sin script verify:rules (cosmético)"

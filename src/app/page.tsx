@@ -274,11 +274,11 @@ export default function Home() {
                       <div className="text-xs text-muted-text mt-1">votos/escaño en Ceuta</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-serif text-navy">~63.600</div>
+                      <div className="text-2xl font-serif text-navy">~64.600</div>
                       <div className="text-xs text-muted-text mt-1">votos/escaño del PSOE</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-serif text-navy">~97.200</div>
+                      <div className="text-2xl font-serif text-navy">~98.200</div>
                       <div className="text-xs text-muted-text mt-1">votos/escaño de Sumar</div>
                     </div>
                     <div>
