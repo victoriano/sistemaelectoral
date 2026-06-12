@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import MethodExplainer from "@/components/MethodExplainer";
 import StepExplanation from "@/components/StepExplanation";
 import Simulator from "@/components/Simulator";
+import ImpactDashboard from "@/components/ImpactDashboard";
 import SpainMap from "@/components/SpainMap";
 import { circunscripciones, realResults2023, parties } from "@/data/elections2023";
 import { dHondtByCircumscription, runGIME } from "@/lib/electoral-methods";
@@ -25,11 +26,19 @@ const TAB2_PILLS = [
   { id: "etapas", label: "Etapas Biproporcional" },
 ];
 
+const TAB3_PILLS = [
+  { id: "resumen", label: "Resumen" },
+  { id: "ganadores", label: "Ganadores y Perdedores" },
+  { id: "matriz", label: "Matriz" },
+  { id: "evolucion", label: "Evolución" },
+];
+
 const TAB2_IDS = TAB2_PILLS.map(p => p.id);
 const TAB1_IDS = TAB1_PILLS.map(p => p.id);
+const TAB3_IDS = TAB3_PILLS.map(p => p.id);
 
 export default function Home() {
-  const [activeTab, setActiveTab] = useState<"intro" | "simulator">("intro");
+  const [activeTab, setActiveTab] = useState<"intro" | "simulator" | "impact">("intro");
   const [activePill, setActivePill] = useState<string>("problema");
   const [selectedCirc, setSelectedCirc] = useState<string | null>(null);
 
@@ -41,6 +50,15 @@ export default function Home() {
       setActiveTab("simulator");
       setActivePill(hash === "simulador" ? "datos" : hash);
       if (hash !== "simulador") {
+        setTimeout(() => {
+          const el = document.getElementById(hash);
+          if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 100);
+      }
+    } else if (hash === "impacto" || TAB3_IDS.includes(hash)) {
+      setActiveTab("impact");
+      setActivePill(hash === "impacto" ? "resumen" : hash);
+      if (hash !== "impacto") {
         setTimeout(() => {
           const el = document.getElementById(hash);
           if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -58,11 +76,11 @@ export default function Home() {
 
   const totalSeats = circunscripciones.reduce((sum, c) => sum + c.seats, 0);
   const dHondtResult = dHondtByCircumscription(
-    circunscripciones.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+    circunscripciones.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
     0.03
   );
   const gimeResults = runGIME(
-    circunscripciones.map(c => ({ name: c.name, seats: c.seats, votes: c.votes })),
+    circunscripciones.map(c => ({ name: c.name, seats: c.seats, votes: c.votes, blankVotes: c.blankVotes })),
     totalSeats,
     0,
     0.03
@@ -76,7 +94,8 @@ export default function Home() {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const pills = activeTab === "intro" ? TAB1_PILLS : TAB2_PILLS;
+  const pills =
+    activeTab === "intro" ? TAB1_PILLS : activeTab === "simulator" ? TAB2_PILLS : TAB3_PILLS;
 
   return (
     <main className="min-h-screen bg-white">
@@ -123,6 +142,17 @@ export default function Home() {
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
               Simulador
+            </button>
+            <button
+              className={`px-6 py-4 text-sm font-medium transition-colors flex items-center gap-2 ${
+                activeTab === "impact"
+                  ? "text-navy border-b-2 border-navy"
+                  : "text-muted-text hover:text-body-text"
+              }`}
+              onClick={() => { setActiveTab("impact"); setActivePill("resumen"); window.history.replaceState(null, "", "#impacto"); }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+              Impacto
             </button>
           </div>
           <div className="flex justify-center gap-2.5 py-3 overflow-x-auto no-scrollbar">
@@ -367,6 +397,8 @@ export default function Home() {
         )}
 
         {activeTab === "simulator" && <Simulator />}
+
+        {activeTab === "impact" && <ImpactDashboard />}
       </div>
 
       {/* Footer */}

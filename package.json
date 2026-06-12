@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "verify": "npx tsx verify_seats.ts",
-    "verify:biprop": "npx tsx scripts/verify_biprop.ts"
+    "verify:biprop": "npx tsx scripts/verify_biprop.ts",
+    "verify:impact": "npx tsx scripts/verify_impact.ts",
+    "verify:rules": "npx tsx scripts/verify_rules.ts"
   },
   "dependencies": {
     "next": "14.2.3",
