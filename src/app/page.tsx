@@ -213,8 +213,9 @@ export default function Home() {
 
               {/* La frase clave */}
               <p className="mt-10 max-w-2xl font-serif text-xl md:text-2xl text-navy leading-snug">
-                No es fraude ni mala fe: es un <span className="text-accent-red">defecto matemático</span> del reparto.
-                Y los defectos matemáticos tienen arreglo matemático.
+                No es fraude ni mala fe: parte de este desequilibrio se diseñó <span className="text-accent-red">a propósito</span>,
+                para dar voz a las provincias menos pobladas. Pero el efecto se ha desbordado mucho más allá de esa
+                intención — y se puede corregir <span className="text-accent-red">sin renunciar a ella</span>.
               </p>
 
               <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -293,9 +294,18 @@ export default function Home() {
                   entre 1, 2, 3…).
                 </p>
                 <p className="text-sm text-body-text leading-relaxed">
-                  Este diseño tiene una <strong>ventaja real</strong>: garantiza voz a las provincias menos pobladas.
-                  Sin el mínimo de 2 escaños, provincias como Soria apenas contarían en el Congreso. La propuesta que
-                  verás después <strong>no toca esa garantía</strong>.
+                  Y aquí conviene ser justos: este desequilibrio <strong>no es un accidente, es un diseño</strong>. La
+                  ley electoral de 1977 (que heredó la LOREG de 1985) buscaba dos cosas razonables para una democracia
+                  recién nacida: que las provincias poco pobladas tuvieran <strong>voz propia</strong> en el Congreso
+                  —sin el mínimo de 2 escaños, Soria apenas contaría— y que de las urnas salieran{" "}
+                  <strong>mayorías estables</strong> capaces de gobernar.
+                </p>
+                <p className="text-sm text-body-text leading-relaxed">
+                  El problema no es la intención: es la <strong>escala</strong>. Proteger a Soria no exigía que un voto
+                  valiera 8 veces menos según la provincia, ni que millones de votos a partidos medianos no eligieran a
+                  nadie. Lo que nació como una corrección razonable genera hoy efectos que van mucho más allá de
+                  aquello para lo que se diseñó. Por eso la propuesta que verás después{" "}
+                  <strong>no toca la garantía territorial</strong>: corrige el exceso.
                 </p>
               </div>
 
@@ -374,9 +384,16 @@ export default function Home() {
               <h2 className="font-serif text-3xl md:text-5xl text-navy mb-6 leading-tight">
                 Que cada voto cuente, sin que tu provincia pierda nada
               </h2>
-              <p className="text-base text-muted-text mb-10 max-w-2xl">
+              <p className="text-base text-muted-text mb-4 max-w-2xl">
                 La propuesta se llama método <strong>biproporcional</strong> (proporcional en dos direcciones a la vez:
                 partidos y provincias). Se resume en tres ideas.
+              </p>
+              <p className="text-base text-muted-text mb-10 max-w-2xl">
+                No persigue la proporcionalidad pura a cualquier precio: busca optimizar a la vez las{" "}
+                <strong>dos cosas</strong> que todo sistema electoral debe equilibrar —{" "}
+                <strong>representatividad</strong> (que el Congreso se parezca a lo votado) y{" "}
+                <strong>gobernabilidad</strong> (que de él pueda salir un gobierno) — los mismos objetivos que ya
+                perseguía la ley de 1977, con herramientas matemáticas mejores.
               </p>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
