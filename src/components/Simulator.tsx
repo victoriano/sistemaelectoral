@@ -247,10 +247,19 @@ export default function Simulator() {
 
   const COALITION_LABELS: {[key: string]: string} = {
     derechas: "Bloque derechas",
-    derechasExtendido: "Derechas + reg.",
+    derechasExtendido: "Derechas + regionalistas",
     izquierdas: "Bloque izquierdas",
     izquierdasNacionalistas: "Gob. Frankenstein",
     granCoalicion: "Gran Coalición",
+  };
+
+  // Glosa breve de cada coalición (se muestra una vez, en la tabla)
+  const COALITION_GLOSS: {[key: string]: string} = {
+    derechas: "PP + VOX",
+    derechasExtendido: "PP + VOX + UPN + CC",
+    izquierdas: "PSOE + SUMAR",
+    izquierdasNacionalistas: "la coalición de investidura de 2019",
+    granCoalicion: "PP + PSOE",
   };
 
   const formatCompactVotes = (votes: number) => {
@@ -306,13 +315,20 @@ export default function Simulator() {
 
   return (
     <div className="space-y-16">
+      {/* Encuadre: el usuario comprueba las cifras por sí mismo */}
+      <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
+        No te fíes de nuestra palabra: elige unas elecciones reales y compara el reparto actual con el biproporcional.
+        Todos los datos son oficiales del Ministerio del Interior (salvo la proyección 2027, que viene de encuestas).
+      </div>
+
       {/* ===== DATOS ===== */}
       <section id="datos" className="space-y-6">
         <div>
           <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Simulador</p>
-          <h2 className="font-serif text-3xl md:text-5xl text-navy mb-2">Datos electorales</h2>
+          <h2 className="font-serif text-3xl md:text-5xl text-navy mb-2">Elige unas elecciones</h2>
           <p className="text-sm text-muted-text max-w-md">
-            Selecciona unas elecciones reales como base para la simulación. Puedes ajustar los votos de cada partido para explorar escenarios alternativos.
+            Cualquiera desde 1993, con los votos reales de cada provincia. Y si quieres, imagina:
+            ¿y si Vox hubiera subido un 20%? Mueve los votos de cada partido y mira qué pasa.
           </p>
         </div>
 
@@ -387,6 +403,7 @@ export default function Simulator() {
           {/* Presets */}
           <div className="mb-4">
             <label className="text-xs font-semibold text-muted-text uppercase tracking-wider block mb-2">Escenario</label>
+            <p className="text-[10px] text-muted-text mb-2">Cada botón mueve los votos de varios partidos a la vez para simular un escenario típico; los deslizadores te dejan afinar el tuyo.</p>
             <div className="flex flex-wrap gap-2">
               {Object.entries(PRESETS).map(([key, preset]) => (
                 <button
@@ -449,7 +466,7 @@ export default function Simulator() {
           <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">Parámetros del método</p>
           <h3 className="font-serif text-2xl md:text-3xl text-navy mb-2">Configuración Biproporcional</h3>
           <p className="text-sm text-muted-text max-w-lg">
-            Estos dos parámetros controlan cómo se aplica el Método Biproporcional. El umbral electoral se comprueba en cada circunscripción y permite entrar al reparto nacional a quien lo supere al menos una vez; la bonificación premia al partido más votado para facilitar la formación de gobierno.
+            El método tiene solo dos palancas. Muévelas y mira cómo cambia el reparto.
           </p>
         </div>
 
@@ -483,7 +500,7 @@ export default function Simulator() {
               <span className="text-xs font-mono bg-gray-100 px-2 py-0.5 rounded text-navy">{governabilityBonus} esc.</span>
             </div>
             <p className="text-[11px] text-muted-text mb-3">
-              Escaños extra asignados al partido más votado para facilitar la formación de gobierno. Se restan proporcionalmente del resto. Grecia otorga 50 escaños extra al ganador. Italia garantiza el 55% de escaños al partido/coalición más votado. Francia usa segunda vuelta en circunscripciones uninominales, lo que genera una prima natural al ganador.
+              Escaños extra para el partido más votado, que se restan proporcionalmente del resto. Existe para quien tema que más proporcionalidad = más bloqueo: facilita formar gobierno. Grecia, por ejemplo, da escaños extra al ganador.
             </p>
             <input
               type="range"
@@ -505,49 +522,9 @@ export default function Simulator() {
       {/* ===== RESULTADOS ===== */}
       <section id="resultados" className="space-y-6">
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Comparación</p>
-        <div className="flex items-center justify-between">
-          <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
-          <button
-            onClick={() => setResultsView(v => v === "table" ? "chart" : "table")}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-text hover:text-navy hover:bg-gray-100 transition-colors"
-            title={resultsView === "table" ? "Ver gráfico" : "Ver tabla"}
-          >
-            {resultsView === "table" ? (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
-                Gráfico
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 10.875c-.621 0-1.125.504-1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m-1.125 1.125c0 .621.504 1.125 1.125 1.125m0 0h.008v.008h-.008v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
-                Tabla
-              </>
-            )}
-          </button>
-        </div>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">Resultados</h3>
 
-        {resultsView === "table" ? (
-          <div>
-            <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs Biproporcional</h4>
-            <ResultsTable
-              dHondt={dHondtResult.national}
-              gime={gimeNational}
-              votes={nationalVotes}
-              parties={parties}
-            />
-          </div>
-        ) : (
-          <div>
-            <h4 className="text-sm font-semibold text-navy mb-3">Escaños: D&apos;Hondt vs Biproporcional</h4>
-            <ComparisonChart
-              dHondt={dHondtResult.national}
-              gime={gimeNational}
-              parties={parties}
-            />
-          </div>
-        )}
-
-        {/* Winners/losers */}
+        {/* Winners/losers — la respuesta que busca todo el mundo, primero */}
         <div>
           <h4 className="text-sm font-semibold text-navy mb-3">¿Quién gana y pierde con el Biproporcional?</h4>
           <p className="text-xs text-muted-text mb-4">
@@ -578,14 +555,58 @@ export default function Simulator() {
               ))}
           </div>
         </div>
+
+        <div className="flex items-center justify-between">
+          <h4 className="text-sm font-semibold text-navy">El detalle, partido a partido</h4>
+          <button
+            onClick={() => setResultsView(v => v === "table" ? "chart" : "table")}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-muted-text hover:text-navy hover:bg-gray-100 transition-colors"
+            title={resultsView === "table" ? "Ver gráfico" : "Ver tabla"}
+          >
+            {resultsView === "table" ? (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" /></svg>
+                Gráfico
+              </>
+            ) : (
+              <>
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 01-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0112 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12c-.621 0-1.125.504-1.125 1.125M12 10.875c-.621 0-1.125.504-1.125 1.125m0 1.5v-1.5m0 0c0-.621.504-1.125 1.125-1.125m-1.125 1.125c0 .621.504 1.125 1.125 1.125m0 0h.008v.008h-.008v-.008zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" /></svg>
+                Tabla
+              </>
+            )}
+          </button>
+        </div>
+
+        {resultsView === "table" ? (
+          <div>
+            <ResultsTable
+              dHondt={dHondtResult.national}
+              gime={gimeNational}
+              votes={nationalVotes}
+              parties={parties}
+            />
+            <p className="text-xs text-muted-text mt-3">
+              Desv. = puntos de diferencia entre % de votos y % de escaños; cuanto más cerca de 0, más justo el reparto.
+            </p>
+          </div>
+        ) : (
+          <div>
+            <ComparisonChart
+              dHondt={dHondtResult.national}
+              gime={gimeNational}
+              parties={parties}
+            />
+          </div>
+        )}
       </section>
 
       {/* ===== GALLAGHER ===== */}
       <section id="gallagher" className="space-y-6">
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Proporcionalidad</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Índice Gallagher</h3>
+        <h3 className="font-serif text-2xl md:text-3xl text-navy">El termómetro de la desproporción (índice de Gallagher)</h3>
         <p className="text-sm text-muted-text mb-6">
-          Mide la desproporcionalidad entre votos y escaños. 0 = perfecto, mayor = peor.
+          Compara el % de votos con el % de escaños de cada partido y lo resume en un número:
+          0 = reparto perfecto. Cuanto más alto, peor refleja el Congreso lo que se votó.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -612,7 +633,11 @@ export default function Simulator() {
         </div>
 
         <div className="rounded-xl bg-step-blue-light/50 p-4 text-sm text-body-text">
-          <strong>Referencia:</strong> España actual ~5-6 · Países Bajos ~1 · Reino Unido ~15-20
+          <strong>Para situarte en la escala:</strong>{" "}
+          <span className="whitespace-nowrap">0 reparto perfecto</span> ·{" "}
+          <span className="whitespace-nowrap">~1 Países Bajos</span> ·{" "}
+          <span className="whitespace-nowrap">~5-6 España hoy</span> ·{" "}
+          <span className="whitespace-nowrap">~15-20 Reino Unido</span>
         </div>
       </section>
 
@@ -621,10 +646,9 @@ export default function Simulator() {
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Votos en restos</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Votos que no eligen a nadie</h3>
         <p className="text-sm text-muted-text">
-          Comparación con la misma métrica en ambos sistemas: votos emitidos en circunscripciones donde el partido
-          no obtuvo ningún escaño. En el desglose por partido (más abajo) se detallan además los restos completos:
-          los votos sobrantes de partidos que sí obtuvieron escaños pero les quedó un excedente que no llegó para
-          conseguir el siguiente.
+          De cada 100 papeletas, ¿cuántas acabaron en la basura por votar al partido &quot;equivocado&quot;
+          en la provincia &quot;equivocada&quot;? Aquí lo medimos igual en los dos sistemas:
+          votos emitidos en provincias donde ese partido no sacó ningún escaño.
         </p>
 
         {(() => {
@@ -711,9 +735,10 @@ export default function Simulator() {
 
               {/* Nota explicativa */}
               <div className="rounded-xl bg-blue-50/50 border border-blue-100 p-4 text-sm text-body-text">
-                <strong>¿Qué son los restos?</strong> En D&apos;Hondt, el último cociente que gana escaño marca el &quot;precio&quot;.
-                Los restos incluyen: todos los votos de partidos que no consiguieron ningún escaño en esa provincia,
-                más los votos sobrantes de partidos que sí obtuvieron escaños (la diferencia entre sus votos y lo que &quot;costaron&quot; sus escaños).
+                <strong>¿Qué son los restos?</strong> Restos: los votos que sobran una vez repartidos los escaños.
+                Incluyen todos los votos de partidos que no consiguieron ningún escaño en esa provincia,
+                más los votos sobrantes de partidos que sí obtuvieron escaños (la diferencia entre sus votos y lo que &quot;costaron&quot; sus escaños,
+                que en D&apos;Hondt marca el último cociente ganador).
                 Una diferencia clave: en el Biproporcional, los votos sin escaño local de un partido que supera el umbral
                 sí cuentan en el reparto nacional; en D&apos;Hondt se pierden por completo.
               </div>
@@ -798,7 +823,9 @@ export default function Simulator() {
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Gobernabilidad</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Índice de Gobernabilidad</h3>
         <p className="text-sm text-muted-text">
-          Mide la facilidad para formar gobierno. Mayor = más fácil gobernar.
+          La crítica habitual a los sistemas proporcionales es que dificultan formar gobierno.
+          Lo medimos en vez de discutirlo: este índice (0-100) resume cuántas coaliciones con mayoría
+          son posibles y con qué margen. Mayor = más fácil formar gobierno. El desglose del cálculo está en la nota de abajo.
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -852,8 +879,11 @@ export default function Simulator() {
             <tbody>
               {govDHondt.details.map((d, i) => (
                 <tr key={d.coalition} className="border-b border-gray-50">
-                  <td className="px-4 py-2.5 font-medium text-navy">
-                    {COALITION_LABELS[d.coalition] || d.coalition}
+                  <td className="px-4 py-2.5">
+                    <span className="font-medium text-navy">{COALITION_LABELS[d.coalition] || d.coalition}</span>
+                    {COALITION_GLOSS[d.coalition] && (
+                      <span className="block text-[10px] text-muted-text">{COALITION_GLOSS[d.coalition]}</span>
+                    )}
                   </td>
                   <td className="text-right px-4 py-2.5">
                     <span className={d.viable ? "font-semibold text-emerald-600" : "text-muted-text"}>
@@ -881,73 +911,24 @@ export default function Simulator() {
       <section id="pactometro" className="space-y-6">
         <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Pactómetro</p>
         <h3 className="font-serif text-2xl md:text-3xl text-navy">Pactos y mayorías</h3>
-        <p className="text-sm text-muted-text">Explora qué coaliciones alcanzan la mayoría absoluta (176 escaños) bajo cada sistema electoral.</p>
+        <p className="text-sm text-muted-text">¿Cambiarían los gobiernos posibles con el nuevo reparto? Compruébalo tú mismo.</p>
         <Pactometro
           dHondtSeats={dHondtResult.national}
           gimeSeats={gimeNational}
         />
       </section>
 
-      {/* ===== ETAPAS BIPROPORCIONAL ===== */}
-      <section id="etapas" className="space-y-6">
-        <p className="text-accent-red text-xs font-semibold tracking-widest uppercase">Algoritmo</p>
-        <h3 className="font-serif text-2xl md:text-3xl text-navy">Etapas del Método Biproporcional</h3>
-        <p className="text-sm text-muted-text mb-4">
-          El método biproporcional funciona en etapas sucesivas.
+      {/* ===== ENLACE AL PASO A PASO (La Propuesta) ===== */}
+      <section className="rounded-2xl bg-gray-50 p-6 text-center">
+        <p className="text-sm text-body-text">
+          ¿Quieres ver cómo se calcula paso a paso?{" "}
+          <a
+            href="#pasos"
+            className="font-semibold text-navy underline underline-offset-4 hover:text-accent-red transition-colors"
+          >
+            La Propuesta →
+          </a>
         </p>
-
-        <div className="space-y-4">
-          {gimeResults.map((stage, i) => {
-            const stageColors = [
-              { badge: "bg-step-blue text-white", bg: "bg-step-blue-light/50", border: "border-step-blue" },
-              { badge: "bg-step-amber text-white", bg: "bg-step-amber-light/50", border: "border-step-amber" },
-              { badge: "bg-step-pink text-white", bg: "bg-step-pink-light/50", border: "border-step-pink" },
-            ];
-            const color = stageColors[Math.min(i, stageColors.length - 1)];
-
-            return (
-              <details key={i} className={`rounded-2xl border-l-4 ${color.border} ${color.bg} group`} open={i === 0}>
-                <summary className="cursor-pointer p-5 flex items-center gap-3 list-none">
-                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider ${color.badge}`}>
-                    ETAPA {stage.stage}
-                  </span>
-                  <span className="text-sm font-medium text-navy flex-1">
-                    {stage.description.split(":")[0]}
-                  </span>
-                  <span className="text-muted-text text-xs group-open:rotate-90 transition-transform">▶</span>
-                </summary>
-                <div className="px-5 pb-5">
-                  <p className="text-sm text-muted-text mb-3">{stage.description}</p>
-                  {stage.iterations !== undefined && (
-                    stage.converged !== false ? (
-                      <p className="text-xs text-step-blue mb-3">
-                        Convergencia en {stage.iterations} {stage.iterations === 1 ? "iteración" : "iteraciones"}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-amber-600 mb-3">
-                        Sin convergencia tras {stage.iterations} iteraciones — resultado aproximado (cuadran los totales por circunscripción)
-                      </p>
-                    )
-                  )}
-                  <div className="flex flex-wrap gap-1.5">
-                    {Object.entries(stage.nationalAllocation)
-                      .filter(([_, seats]) => seats > 0)
-                      .sort((a, b) => b[1] - a[1])
-                      .map(([party, seats]) => (
-                        <span
-                          key={party}
-                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs text-white font-medium"
-                          style={{ backgroundColor: parties[party]?.color || "#888" }}
-                        >
-                          {party}: {seats}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-              </details>
-            );
-          })}
-        </div>
       </section>
     </div>
   );

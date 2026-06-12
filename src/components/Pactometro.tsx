@@ -16,12 +16,12 @@ const PRESET_COALITIONS = {
   },
   frankestein: {
     name: "Gobierno Frankenstein",
-    description: "PSOE + SUMAR + ERC + Junts + PNV + Bildu + BNG + CC",
+    description: "PSOE + SUMAR + ERC + Junts + PNV + Bildu + BNG + CC (la coalición de investidura de 2019)",
     parties: ["PSOE", "SUMAR", "ERC", "JUNTS", "PNV", "BILDU", "BNG", "CCA"],
   },
   derechasExtendido: {
     name: "Derechas + regionalistas",
-    description: "PP + VOX + UPN + CC",
+    description: "PP + VOX + UPN + CC (Coalición Canaria)",
     parties: ["PP", "VOX", "UPN", "CCA"],
   },
   derechas: {
@@ -108,6 +108,11 @@ export default function Pactometro({ dHondtSeats, gimeSeats }: PactometroProps) 
 
   return (
     <div className="space-y-8">
+      {/* Intro */}
+      <p className="text-sm text-body-text">
+        176 escaños = mayoría absoluta. Combina partidos y mira qué sumas salen con cada sistema.
+      </p>
+
       {/* Method toggle */}
       <div className="flex justify-center">
         <div className="inline-flex rounded-full bg-gray-100 p-0.5">

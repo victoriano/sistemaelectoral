@@ -39,6 +39,13 @@ function partyColor(party: string): string {
   return canonicalParties[party]?.color || "#94a3b8";
 }
 
+/** "2019-N" → "noviembre de 2019", "2019-A" → "abril de 2019", "2023" → "2023". */
+function humanYear(year: string): string {
+  if (year.endsWith("-N")) return `noviembre de ${year.slice(0, 4)}`;
+  if (year.endsWith("-A")) return `abril de ${year.slice(0, 4)}`;
+  return year;
+}
+
 /** Verde/rojo con intensidad proporcional a la magnitud de la diferencia. */
 function heatColor(diff: number, maxAbs: number): string {
   if (diff === 0) return "transparent";
@@ -101,15 +108,33 @@ export default function ImpactDashboard() {
 
   const avgSeatsMoved = summary.totalSeatsMoved / elections.length;
 
+  /** Elección con más escaños movidos (para la línea de interpretación). */
+  const worstElection = useMemo(
+    () => elections.reduce((a, b) => (b.seatsMoved > a.seatsMoved ? b : a)),
+    [elections]
+  );
+
+  /** Diferencias acumuladas de los territoriales, derivadas de los datos. */
+  const ercDiff = summary.totalDiffByParty["ERC"] || 0;
+  const juntsDiff = summary.totalDiffByParty["JUNTS"] || 0;
+  const pnvDiff = summary.totalDiffByParty["PNV"] || 0;
+
+  const fmtSigned = (n: number) => (n > 0 ? `+${n}` : `${n}`);
+
   return (
     <div className="space-y-16">
       {/* ===== RESUMEN ===== */}
       <section id="resumen" className="scroll-mt-32">
-        <h2 className="font-serif text-3xl text-navy mb-2">El impacto, de un vistazo</h2>
-        <p className="text-body-text text-sm mb-8 max-w-2xl">
-          Resultado de aplicar el método biproporcional (barrera del 3% en al menos una
-          circunscripción, sin bonus de gobernabilidad) a las {elections.length} elecciones
-          generales celebradas entre 1993 y 2023, comparado con el reparto D&apos;Hondt real.
+        <h2 className="font-serif text-3xl text-navy mb-2">30 años de elecciones, recalculados</h2>
+        <p className="text-body-text text-base mb-3 max-w-2xl">
+          Si España hubiera usado el método biproporcional desde 1993,{" "}
+          <span className="font-semibold text-navy">{summary.totalSeatsMoved} escaños</span>{" "}
+          habrían ido a parar a otro partido — sin cambiar ni un solo voto.
+        </p>
+        <p className="text-muted-text text-xs mb-8 max-w-2xl">
+          Cálculo sobre las {elections.length} elecciones generales celebradas entre 1993 y 2023:
+          método biproporcional (barrera del 3% en al menos una circunscripción, sin bonus de
+          gobernabilidad) comparado con el reparto D&apos;Hondt real.
         </p>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
@@ -126,7 +151,7 @@ export default function ImpactDashboard() {
               <span className="text-emerald-600">{summary.avgGallagherBiprop.toFixed(1)}</span>
             </div>
             <div className="text-xs text-muted-text mt-1">
-              índice de Gallagher medio (desproporcionalidad, menos es mejor)
+              índice de Gallagher medio — termómetro de la desproporción: 0 = reparto perfecto
             </div>
           </div>
           <div className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
@@ -169,17 +194,35 @@ export default function ImpactDashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs text-muted-text mt-3 max-w-2xl">
+          La peor: las elecciones de {humanYear(worstElection.year)}, con{" "}
+          {worstElection.seatsMoved} escaños mal repartidos.
+        </p>
       </section>
 
       {/* ===== GANADORES / PERDEDORES ===== */}
       <section id="ganadores" className="scroll-mt-32">
-        <h2 className="font-serif text-3xl text-navy mb-2">Ganadores y perdedores históricos</h2>
-        <p className="text-body-text text-sm mb-6 max-w-2xl">
-          Escaños que cada partido habría ganado (verde, derecha) o perdido (rojo, izquierda)
-          sumando las {elections.length} elecciones. El biproporcional corrige la prima de los
-          dos grandes partidos y reparte ese exceso entre las fuerzas medianas de ámbito
-          nacional; los partidos territoriales apenas varían.
+        <h2 className="font-serif text-3xl text-navy mb-2">Quién ha pagado la factura</h2>
+        <p className="text-body-text text-sm mb-4 max-w-2xl">
+          El sistema actual regala escaños a los dos grandes partidos. El biproporcional se los
+          devuelve a los medianos de ámbito nacional. Suma de las {elections.length} elecciones
+          de 1993 a 2023.
         </p>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-text mb-4">
+          <span className="font-medium text-body-text">Cómo leerlo:</span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-3 h-3 rounded-sm bg-gray-300" />
+            cada barra lleva el color de su partido
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-emerald-600 font-semibold">→ derecha del cero</span>
+            ganaría escaños
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-red-500 font-semibold">← izquierda del cero</span>
+            los perdería
+          </span>
+        </div>
         <div style={{ width: "100%", height: Math.max(280, partyDiffData.length * 34) }}>
           <ResponsiveContainer>
             <BarChart
@@ -210,16 +253,36 @@ export default function ImpactDashboard() {
             </BarChart>
           </ResponsiveContainer>
         </div>
+        <p className="text-xs text-muted-text mt-3 max-w-2xl">
+          Los partidos territoriales apenas cambian: ERC ({fmtSigned(ercDiff)}) y Junts (
+          {fmtSigned(juntsDiff)}) quedan prácticamente igual; el PNV cede algo (
+          {fmtSigned(pnvDiff)} en 30 años) porque hoy está algo sobrerrepresentado.
+        </p>
       </section>
 
       {/* ===== MATRIZ ===== */}
       <section id="matriz" className="scroll-mt-32">
         <h2 className="font-serif text-3xl text-navy mb-2">Partido a partido, elección a elección</h2>
-        <p className="text-body-text text-sm mb-6 max-w-2xl">
-          Diferencia de escaños (biproporcional − D&apos;Hondt) por partido en cada elección.
-          Verde: ganaría escaños; rojo: los perdería. Los {heatmapParties.length} partidos con
-          mayor variación acumulada.
+        <p className="text-body-text text-sm mb-4 max-w-2xl">
+          Cuántos escaños habría ganado o perdido cada partido en cada elección con el
+          biproporcional. Verde: ganaría escaños; rojo: los perdería. Se muestran los{" "}
+          {heatmapParties.length} partidos con mayor variación acumulada.
         </p>
+        <p className="text-xs text-muted-text mb-2 max-w-2xl">
+          <span className="font-semibold text-body-text">Ojo con las marcas que cambian:</span>{" "}
+          CiU pasó a llamarse CDC y después Junts, e IU concurre dentro de Sumar desde 2023.
+          Cada marca aparece como fila propia solo en los años en que se presentó con ese nombre.
+        </p>
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-xs text-muted-text mb-4">
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-flex items-center justify-center w-7 h-5 rounded border border-gray-200 bg-white font-medium">·</span>
+            concurrió, sin cambio de escaños
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <span className="inline-block w-7 h-5 rounded bg-gray-100" />
+            no concurrió con esa marca
+          </span>
+        </div>
         <div className="overflow-x-auto">
           <table className="text-xs border-separate" style={{ borderSpacing: 2 }}>
             <thead>
@@ -255,8 +318,14 @@ export default function ImpactDashboard() {
                       <td
                         key={e.year}
                         className="text-center rounded w-12 h-7 font-medium tabular-nums"
-                        style={{ backgroundColor: heatColor(d, heatMaxAbs) }}
-                        title={`${party} · ${e.name}: D'Hondt ${e.dhondt[party] || 0} → Biprop ${e.biprop[party] || 0}`}
+                        style={{
+                          backgroundColor: inElection ? heatColor(d, heatMaxAbs) : "#f3f4f6",
+                        }}
+                        title={
+                          inElection
+                            ? `${party} · ${e.name}: D'Hondt ${e.dhondt[party] || 0} → Biprop ${e.biprop[party] || 0}`
+                            : `${party} no concurrió con esta marca en ${e.name}`
+                        }
                       >
                         {d !== 0 ? (d > 0 ? `+${d}` : d) : inElection ? "·" : ""}
                       </td>
@@ -275,17 +344,20 @@ export default function ImpactDashboard() {
           </table>
         </div>
         <p className="text-[11px] text-muted-text mt-2">
-          · = el partido concurrió con el mismo resultado en ambos métodos. Celdas vacías: no concurrió
-          (o concurrió bajo otra marca: CiU→CDC→Junts, IU dentro de Sumar desde 2023, etc.).
+          La cifra de cada celda es la diferencia de escaños (biproporcional − D&apos;Hondt). La
+          columna Total suma todo el periodo.
         </p>
       </section>
 
       {/* ===== EVOLUCIÓN ===== */}
       <section id="evolucion" className="scroll-mt-32">
-        <h2 className="font-serif text-3xl text-navy mb-2">Tres décadas de desproporcionalidad</h2>
+        <h2 className="font-serif text-3xl text-navy mb-2">
+          La injusticia no es de una elección: es del sistema
+        </h2>
         <p className="text-body-text text-sm mb-6 max-w-2xl">
-          Índice de Gallagher (cuánto se desvía el reparto de escaños del reparto de votos) y
-          porcentaje de votos emitidos en provincias donde el partido votado no obtuvo escaño.
+          Dos formas de medir lo mismo, año a año: el índice de Gallagher (termómetro de la
+          desproporción: 0 = reparto perfecto) y el porcentaje de votos emitidos en provincias
+          donde el partido votado no obtuvo ningún escaño.
         </p>
 
         <div className="grid md:grid-cols-2 gap-8">
@@ -306,7 +378,9 @@ export default function ImpactDashboard() {
             </div>
           </div>
           <div>
-            <h3 className="text-sm font-semibold text-body-text mb-3">Votos sin escaño en su provincia</h3>
+            <h3 className="text-sm font-semibold text-body-text mb-3">
+              Votos que no eligieron a nadie (%)
+            </h3>
             <div style={{ width: "100%", height: 260 }}>
               <ResponsiveContainer>
                 <LineChart data={evolutionData} margin={{ top: 5, right: 10, left: -20, bottom: 0 }}>
@@ -329,14 +403,20 @@ export default function ImpactDashboard() {
           </div>
         </div>
 
+        <p className="text-sm text-body-text mt-4 max-w-2xl">
+          En todas y cada una de las {elections.length} elecciones, la línea verde queda por
+          debajo: menos desproporción y menos votos a la basura, gobierne quien gobierne.
+        </p>
+
         <div className="mt-10 rounded-2xl bg-gray-50 border border-gray-100 p-5 text-xs text-muted-text leading-relaxed">
           <span className="font-semibold text-body-text">Metodología.</span> Datos oficiales por
           circunscripción del Ministerio del Interior (todas las candidaturas y votos en blanco).
           Biproporcional calculado con barrera del 3% de votos válidos en al menos una
           circunscripción y sin bonus de gobernabilidad; D&apos;Hondt con la barrera provincial del
-          3% de la LOREG. &ldquo;Votos sin escaño en su provincia&rdquo; usa la misma métrica para
-          ambos métodos: votos a candidaturas en circunscripciones donde el partido no obtuvo
-          ningún escaño. Verificable con <code>npm run verify:impact</code>.
+          3% de la LOREG. El índice de Gallagher mide cuánto se desvía el reparto de escaños del
+          reparto de votos: 0 = reparto perfecto. &ldquo;Votos que no eligieron a nadie&rdquo; usa
+          la misma métrica para ambos métodos: votos a candidaturas en circunscripciones donde el
+          partido no obtuvo ningún escaño. Verificable con <code>npm run verify:impact</code>.
         </div>
       </section>
     </div>

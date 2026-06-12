@@ -162,7 +162,7 @@ const walkthroughStages: Stage[] = [
     kicker: "Paso 2",
     title: "Ajustamos el peso de cada partido",
     description:
-      "El algoritmo sube el multiplicador de VOX (infrarepresentado) y baja el de PSOE (sobrerrepresentado). Los totales nacionales se acercan al reparto justo.",
+      "El algoritmo sube el multiplicador (el peso que se aplica a los votos) de VOX, que tiene menos escaños de los que le tocan, y baja el de PSOE, que tiene de más. Los totales nacionales se acercan al reparto justo.",
     matrix: [
       [15.8, 9.6, 5.4, 6.2],
       [0.9, 0.8, 0.1, 0.2],
@@ -178,7 +178,7 @@ const walkthroughStages: Stage[] = [
     kicker: "Paso 3",
     title: "Resultado final tras convergencia",
     description:
-      "El algoritmo repite el reparto con los pesos ajustados (redondeo Webster/Sainte-Laguë) hasta que cuadran provincias y partidos a la vez. Suele converger en pocas iteraciones.",
+      "El algoritmo repite el reparto con los pesos ajustados, usando el redondeo Webster/Sainte-Laguë (una regla estándar para pasar de decimales a escaños enteros), hasta que cuadran provincias y partidos a la vez. Suele lograrlo en pocas pasadas.",
     matrix: [
       [16, 10, 5, 6],
       [1, 1, 0, 0],
@@ -270,7 +270,7 @@ function computeProvinceSeats(votes: Record<ProvincePartyId, number>, seats: num
   );
 }
 
-export default function MethodExplainer() {
+export function DHondtExplainer() {
   const [votes, setVotes] = useState<Record<PartyId, number>>({
     A: 147623,
     B: 131567,
@@ -278,40 +278,9 @@ export default function MethodExplainer() {
     D: 46478,
   });
   const [activeSeat, setActiveSeat] = useState<number>(7);
-  const [activeStage, setActiveStage] = useState<number>(2);
 
   const seats = 7;
   const dHondt = useMemo(() => computeDhondt(votes, seats), [votes]);
-
-  const provinceResults = useMemo(
-    () =>
-      provinceData.map((province) => ({
-        ...province,
-        seatAllocation: computeProvinceSeats(province.votes, province.seats),
-      })),
-    []
-  );
-
-  const nationalTotals = useMemo(() => {
-    return provinceParties.reduce(
-      (acc, party) => {
-        const totalVotes = provinceData.reduce((sum, province) => sum + province.votes[party.id], 0);
-        const totalSeats = provinceResults.reduce((sum, province) => sum + province.seatAllocation[party.id], 0);
-        acc[party.id] = { votes: totalVotes, seats: totalSeats };
-        return acc;
-      },
-      {} as Record<ProvincePartyId, { votes: number; seats: number }>
-    );
-  }, [provinceResults]);
-
-  const biproNationalSeats = {
-    PP: 27,
-    PSOE: 28,
-    VOX: 10,
-    SUMAR: 14,
-  } satisfies Record<ProvincePartyId, number>;
-
-  const currentStage = walkthroughStages[activeStage];
 
   const handleVoteChange = (partyId: PartyId, nextValue: number) => {
     setVotes((current) => ({
@@ -321,19 +290,19 @@ export default function MethodExplainer() {
   };
 
   return (
-    <div className="space-y-10">
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 md:px-8">
-          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">Parte 1</p>
+          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">Ejemplo real</p>
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="max-w-2xl">
               <h3 className="font-serif text-2xl md:text-3xl text-navy">Cómo funciona D&apos;Hondt</h3>
               <p className="text-sm text-muted-text mt-2">
-                Ejemplo real: <strong>Granada, elecciones 23J 2023</strong> (7 escaños). Cada escaño va al cociente más alto de la tabla.
+                <strong>Granada, elecciones del 23J de 2023</strong> (7 escaños). Cada escaño va al cociente
+                (el resultado de dividir los votos entre 1, 2, 3…) más alto de la tabla.
               </p>
             </div>
             <div className="rounded-2xl bg-white border border-gray-200 px-4 py-3 text-sm text-muted-text">
-              Desliza los votos y mira cómo cambian los escaños en tiempo real.
+              Los votos de partida son los reales de Granada el 23J. Mueve los deslizadores para jugar con otros escenarios.
             </div>
           </div>
         </div>
@@ -506,13 +475,50 @@ export default function MethodExplainer() {
           </div>
         </div>
       </section>
+  );
+}
 
+export function BipropExplainer() {
+  const [activeStage, setActiveStage] = useState<number>(2);
+
+  const provinceResults = useMemo(
+    () =>
+      provinceData.map((province) => ({
+        ...province,
+        seatAllocation: computeProvinceSeats(province.votes, province.seats),
+      })),
+    []
+  );
+
+  const nationalTotals = useMemo(() => {
+    return provinceParties.reduce(
+      (acc, party) => {
+        const totalVotes = provinceData.reduce((sum, province) => sum + province.votes[party.id], 0);
+        const totalSeats = provinceResults.reduce((sum, province) => sum + province.seatAllocation[party.id], 0);
+        acc[party.id] = { votes: totalVotes, seats: totalSeats };
+        return acc;
+      },
+      {} as Record<ProvincePartyId, { votes: number; seats: number }>
+    );
+  }, [provinceResults]);
+
+  const biproNationalSeats = {
+    PP: 27,
+    PSOE: 28,
+    VOX: 10,
+    SUMAR: 14,
+  } satisfies Record<ProvincePartyId, number>;
+
+  const currentStage = walkthroughStages[activeStage];
+
+  return (
+    <div className="space-y-10">
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 md:px-8">
-          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">Parte 2</p>
+          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">El problema, a escala nacional</p>
           <h3 className="font-serif text-2xl md:text-3xl text-navy">El problema a escala nacional</h3>
           <p className="text-sm text-muted-text mt-2 max-w-2xl">
-            Cuando el voto está repartido por todo el país, puede no bastar en ninguna provincia. En cambio, el voto concentrado sí convierte apoyo en escaños.
+            Cuando el voto está repartido por todo el país, puede no bastar en ninguna provincia. En cambio, el voto concentrado sí convierte apoyo en escaños. Ejemplo simplificado con 4 provincias y cifras ilustrativas.
           </p>
         </div>
 
@@ -607,7 +613,7 @@ export default function MethodExplainer() {
 
       <section className="rounded-2xl border border-gray-200 bg-white shadow-sm overflow-hidden">
         <div className="border-b border-gray-100 bg-gray-50 px-6 py-5 md:px-8">
-          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">Parte 3</p>
+          <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-2">La solución</p>
           <h3 className="font-serif text-2xl md:text-3xl text-navy">Cómo lo resuelve el biproporcional</h3>
           <p className="text-sm text-muted-text mt-2 max-w-2xl">
             Primero decide cuántos escaños merece cada partido en toda España. Después los coloca en las provincias sin romper el mapa.
@@ -649,7 +655,7 @@ export default function MethodExplainer() {
                 <div className="rounded-xl bg-gray-50 px-3 py-2 text-body-text">Multiplicador SUMAR: 1,03x</div>
               </div>
               <p className="mt-4 rounded-2xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                La intuición: subimos el volumen del partido infrarepresentado y bajamos un poco el del sobrerrepresentado.
+                La intuición: subimos un poco el &ldquo;volumen&rdquo; de los votos del partido al que le faltan escaños y se lo bajamos al que le sobran.
               </p>
             </div>
 
@@ -772,11 +778,20 @@ export default function MethodExplainer() {
             </div>
 
             <div className="mt-5 rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 text-sm text-body-text">
-              <strong>{currentStage.badge}</strong> El biproporcional itera hasta lograr ambas cosas a la vez.
+              <strong>{currentStage.badge}</strong> El biproporcional repite el cálculo hasta lograr ambas cosas a la vez.
             </div>
           </div>
         </div>
       </section>
+    </div>
+  );
+}
+
+export default function MethodExplainer() {
+  return (
+    <div className="space-y-10">
+      <DHondtExplainer />
+      <BipropExplainer />
     </div>
   );
 }
