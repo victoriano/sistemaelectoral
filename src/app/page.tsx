@@ -27,6 +27,7 @@ const TAB2_PILLS = [
 const TAB3_PILLS = [
   { id: "resumen", label: "Resumen" },
   { id: "ganadores", label: "Ganadores y Perdedores" },
+  { id: "gobiernos", label: "Gobiernos" },
   { id: "matriz", label: "Matriz" },
   { id: "evolucion", label: "Evolución" },
 ];

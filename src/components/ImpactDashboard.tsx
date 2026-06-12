@@ -17,6 +17,7 @@ import {
 } from "recharts";
 import { computeImpactSummary } from "@/lib/impact-stats";
 import { canonicalParties } from "@/data/party-aliases";
+import GovernmentTimeline from "@/components/GovernmentTimeline";
 
 const DHONDT_COLOR = "#6366f1";
 const BIPROP_COLOR = "#10b981";
@@ -258,6 +259,11 @@ export default function ImpactDashboard() {
           {fmtSigned(juntsDiff)}) quedan prácticamente igual; el PNV cede algo (
           {fmtSigned(pnvDiff)} en 30 años) porque hoy está algo sobrerrepresentado.
         </p>
+      </section>
+
+      {/* ===== GOBIERNOS ===== */}
+      <section id="gobiernos" className="scroll-mt-32">
+        <GovernmentTimeline />
       </section>
 
       {/* ===== MATRIZ ===== */}
