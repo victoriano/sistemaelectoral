@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import MethodExplainer from "@/components/MethodExplainer";
 import StepExplanation from "@/components/StepExplanation";
 import Simulator from "@/components/Simulator";
 import SpainMap from "@/components/SpainMap";
@@ -167,7 +168,7 @@ export default function Home() {
                     <li>Voto perdido en circunscripciones pequeñas</li>
                     <li>Desigualdad del valor del voto según provincia</li>
                     <li>Partidos pequeños y medianos nacionales infrarepresentados</li>
-                    <li>Prima en exceso a partidos regionalistas</li>
+                    <li>Sobrepremia el voto territorialmente concentrado frente al voto repartido</li>
                   </ul>
                 </div>
 
@@ -181,6 +182,7 @@ export default function Home() {
                     <li>Proporcionalidad perfecta a nivel nacional</li>
                     <li>Todos los votos cuentan igual</li>
                     <li>Mantiene circunscripciones territoriales</li>
+                    <li>Conserva la representación de quien supera el umbral en su territorio</li>
                     <li>Transparente y matemáticamente riguroso</li>
                   </ul>
                 </div>
@@ -196,7 +198,7 @@ export default function Home() {
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-red font-bold mt-0.5">?</span>
-                    <span>Si estos partidos nacionales tuvieran más peso, ¿representaría la cámara mejor los intereses del conjunto del país, en lugar de una donde los partidos nacionalistas regionalistas están sobrerrepresentados y condicionan la gobernabilidad?</span>
+                    <span>Si los partidos de ámbito nacional tuvieran una representación más ajustada a sus votos, ¿se reduciría la prima actual del voto concentrado sin borrar la representación legítima de los partidos regionales?</span>
                   </li>
                   <li className="flex items-start gap-3">
                     <span className="text-accent-red font-bold mt-0.5">?</span>
@@ -294,9 +296,16 @@ export default function Home() {
             <section id="pasos">
               <p className="text-accent-red text-xs font-semibold tracking-widest uppercase mb-3">La solución</p>
               <h2 className="font-serif text-3xl md:text-5xl text-navy mb-10 leading-tight">
-                Tres pasos hacia la proporcionalidad
+                Cómo funciona
               </h2>
-              <StepExplanation />
+              <MethodExplainer />
+
+              <div className="mt-16">
+                <h3 className="font-serif text-2xl md:text-3xl text-navy mb-8 leading-tight">
+                  Las tres etapas, en resumen
+                </h3>
+                <StepExplanation />
+              </div>
             </section>
 
             {/* ===== SOBRE GIME ===== */}

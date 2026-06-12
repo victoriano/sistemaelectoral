@@ -604,9 +604,16 @@ export function gallagherIndex(
 }
 
 /**
- * Calcula los votos "en restos" (wasted votes) por circunscripción.
- * Para D'Hondt: votos de partidos que obtuvieron 0 escaños en cada circunscripción.
- * Estos son los votos que literalmente no eligieron a nadie.
+ * Calcula los votos "en restos" reales por circunscripción.
+ *
+ * Para cada circunscripción, el último cociente que ganó escaño marca el
+ * "precio" de un escaño. Los restos de cada partido son:
+ * - Si tiene 0 escaños: TODOS sus votos son restos
+ * - Si tiene N escaños: votos - N × precio_escaño (la parte "sobrante"
+ *   que no llegó para el siguiente escaño)
+ *
+ * El "precio" se calcula como el menor cociente que ganó escaño en esa
+ * circunscripción (el cociente del último escaño asignado).
  */
 export function calculateWastedVotesCirc(
   circumscriptions: CircumscriptionVotes[],
@@ -618,10 +625,36 @@ export function calculateWastedVotesCirc(
   circumscriptions.forEach((circ, i) => {
     const result = circumscriptionResults[i];
     if (!result) return;
+
+    // Find the "seat price": the lowest winning quotient in this circ.
+    // For each party with seats, votes/(seats) is their last winning quotient;
+    // the minimum across all parties is the overall cutoff.
+    let seatPrice = 0;
+    const partiesWithSeats = Object.entries(result.allocation).filter(([_, s]) => s > 0);
+    if (partiesWithSeats.length > 0) {
+      seatPrice = Math.min(
+        ...partiesWithSeats.map(([party, seats]) => (circ.votes[party] || 0) / seats)
+      );
+    }
+
     Object.entries(circ.votes).forEach(([party, votes]) => {
       totalVotesSum += votes;
-      if (votes > 0 && (result.allocation[party] || 0) === 0) {
-        wasted[party] = (wasted[party] || 0) + votes;
+      if (votes <= 0) return;
+
+      const seatsWon = result.allocation[party] || 0;
+      let remainder: number;
+
+      if (seatsWon === 0) {
+        // All votes are wasted
+        remainder = votes;
+      } else {
+        // Remainder = votes that didn't contribute to winning seats
+        // = votes - seats × seatPrice (capped at 0)
+        remainder = Math.max(0, votes - seatsWon * seatPrice);
+      }
+
+      if (remainder > 0) {
+        wasted[party] = (wasted[party] || 0) + remainder;
       }
     });
   });
@@ -632,16 +665,30 @@ export function calculateWastedVotesCirc(
 
 /**
  * Calcula los votos "en restos" para el método Biproporcional.
- * Usa la misma lógica por circunscripción, pero excluye partidos que tienen
- * escaños a nivel nacional, ya que en el sistema biproporcional sus votos
- * cuentan nacionalmente aunque no obtengan escaño en esa circunscripción.
+ *
+ * En el sistema biproporcional, TODOS los votos de partidos que superan
+ * el umbral en al menos una circunscripción contribuyen al reparto nacional.
+ * Por tanto, solo son "votos perdidos" los de partidos que NO superaron
+ * el umbral en ninguna circunscripción (sobre votos VÁLIDOS, incl. blancos).
+ *
+ * Adicionalmente, calcula los votos "sin representación local": votos en
+ * circunscripciones donde el partido no obtuvo escaño en el reparto
+ * biproporcional (el votante no tiene representante local de su partido,
+ * aunque su voto sí contó nacionalmente).
  */
 export function calculateWastedVotesBiprop(
   circumscriptions: CircumscriptionVotes[],
   circumscriptionResults: CircumscriptionResult[],
-  nationalSeats: { [party: string]: number }
-): { byParty: { [party: string]: number }; total: number; totalVotes: number } {
+  threshold: number = 0.03
+): {
+  byParty: { [party: string]: number };
+  total: number;
+  totalVotes: number;
+  unrepresentedLocal: { byParty: { [party: string]: number }; total: number };
+} {
+  const qualifiedParties = new Set(getBiproportionalEligibleParties(circumscriptions, threshold));
   const wasted: { [party: string]: number } = {};
+  const unrepLocal: { [party: string]: number } = {};
   let totalVotesSum = 0;
 
   circumscriptions.forEach((circ, i) => {
@@ -649,14 +696,88 @@ export function calculateWastedVotesBiprop(
     if (!result) return;
     Object.entries(circ.votes).forEach(([party, votes]) => {
       totalVotesSum += votes;
-      if (votes > 0 && (result.allocation[party] || 0) === 0 && (nationalSeats[party] || 0) === 0) {
-        wasted[party] = (wasted[party] || 0) + votes;
+      if (votes > 0 && (result?.allocation[party] || 0) === 0) {
+        if (!qualifiedParties.has(party)) {
+          // Truly wasted: party didn't qualify anywhere
+          wasted[party] = (wasted[party] || 0) + votes;
+        } else {
+          // Not wasted nationally, but no local representation
+          unrepLocal[party] = (unrepLocal[party] || 0) + votes;
+        }
       }
     });
   });
 
   const total = Object.values(wasted).reduce((a, b) => a + b, 0);
-  return { byParty: wasted, total, totalVotes: totalVotesSum };
+  const unrepTotal = Object.values(unrepLocal).reduce((a, b) => a + b, 0);
+  return {
+    byParty: wasted,
+    total,
+    totalVotes: totalVotesSum,
+    unrepresentedLocal: { byParty: unrepLocal, total: unrepTotal }
+  };
+}
+
+/**
+ * Devuelve el detalle de votos en restos por partido y provincia.
+ * Incluye tanto partidos con 0 escaños (todos sus votos) como
+ * los restos de partidos que sí obtuvieron escaños.
+ */
+export function calculateWastedVotesDetail(
+  circumscriptions: CircumscriptionVotes[],
+  circumscriptionResults: CircumscriptionResult[]
+): { [party: string]: { province: string; votes: number; seatsWon: number }[] } {
+  const wastedDetail: { [party: string]: { province: string; votes: number; seatsWon: number }[] } = {};
+
+  circumscriptions.forEach((circ, i) => {
+    const result = circumscriptionResults[i];
+    if (!result) return;
+
+    // Calculate seat price for this circ
+    let seatPrice = 0;
+    const partiesWithSeats = Object.entries(result.allocation).filter(([_, s]) => s > 0);
+    if (partiesWithSeats.length > 0) {
+      seatPrice = Math.min(
+        ...partiesWithSeats.map(([party, seats]) => (circ.votes[party] || 0) / seats)
+      );
+    }
+
+    Object.entries(circ.votes).forEach(([party, votes]) => {
+      if (votes <= 0) return;
+
+      const seatsWon = result.allocation[party] || 0;
+      let remainder: number;
+
+      if (seatsWon === 0) {
+        remainder = votes;
+      } else {
+        remainder = Math.max(0, votes - seatsWon * seatPrice);
+      }
+
+      if (remainder > 0) {
+        if (!wastedDetail[party]) wastedDetail[party] = [];
+        wastedDetail[party].push({
+          province: circ.name,
+          votes: Math.round(remainder),
+          seatsWon
+        });
+      }
+    });
+  });
+
+  return wastedDetail;
+}
+
+/**
+ * Devuelve el detalle de votos en restos en biproporcional por partido y provincia.
+ * Usa la misma lógica de "seat price" que D'Hondt pero con las asignaciones biprop.
+ */
+export function calculateUnrepresentedLocalDetail(
+  circumscriptions: CircumscriptionVotes[],
+  circumscriptionResults: CircumscriptionResult[],
+  _threshold: number = 0.03
+): { [party: string]: { province: string; votes: number; seatsWon: number }[] } {
+  return calculateWastedVotesDetail(circumscriptions, circumscriptionResults);
 }
 
 /**
